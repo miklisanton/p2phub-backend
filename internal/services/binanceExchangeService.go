@@ -202,7 +202,7 @@ func (ex BinanceExchange) RequestData(page int, currency, side string) (*Binance
 
 	return &binanceResponse, nil
 }
-func (ex BinanceExchange) GetAdvByName(currency, side, username string) ([]P2PItemI, error) {
+func (ex BinanceExchange) GetAdsByName(currency, side, username string) ([]P2PItemI, error) {
 	out := make([]P2PItemI, 0)
 	i := 1
 	for {
