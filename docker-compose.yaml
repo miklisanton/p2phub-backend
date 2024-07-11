@@ -1,0 +1,27 @@
+version: '3'
+services:
+  app:
+    build:
+      context: ./
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: antonmiklis
+      DB_PASSWORD: 1111
+      DB_NAME: p2p_bot
+
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: antonmiklis
+      POSTGRES_PASSWORD: 1111
+      POSTGRES_DB: p2p_bot
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  db_data:
