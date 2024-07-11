@@ -157,7 +157,7 @@ func (ex BybitExchange) requestData(page int, currency, side string) (*BybitAdsR
 	return &bybitResponse, nil
 }
 
-func (ex BybitExchange) GetAdvByName(currency, side, username string) ([]P2PItemI, error) {
+func (ex BybitExchange) GetAdsByName(currency, side, username string) ([]P2PItemI, error) {
 	out := make([]P2PItemI, 0)
 	i := 1
 	for {
