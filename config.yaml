@@ -1,0 +1,9 @@
+database:
+  host: db
+  port: 5432
+  name: p2p_bot
+  user: antonmiklis
+  password: ${DB_PASSWORD}
+  ssl: disable
+telegram:
+  api-key: ${BOT_TOKEN}
