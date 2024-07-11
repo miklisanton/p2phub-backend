@@ -7,7 +7,6 @@ CREATE TABLE trackers (
     currency varchar(3) NOT NULL,
     side varchar(4) NOT NULL,
     waiting_adv boolean DEFAULT false,
-    UNIQUE (user_id, exchange, currency, side),
     CONSTRAINT fk_user
         FOREIGN KEY (user_id)
         REFERENCES users(chat_id)

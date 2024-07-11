@@ -147,14 +147,15 @@ func (bot *Bot) Start() {
 							id = bot.SendMessage(chatID, "/new to create new tracker")
 							bot.toDelete = append(bot.toDelete, id)
 						} else {
+							log.Printf("Find %d ads", len(ads))
 							for _, adv := range ads {
-								tracker.ID = 0
 								tracker.Payment = adv.GetPaymentMethods()
 
 								err = bot.trackerService.CreateTracker(tracker)
 								if err != nil {
 									log.Fatal(err)
 								}
+								tracker.ID = 0
 							}
 							nextState, err = sm.Transition(chatID, fsm.AdvertisementFound)
 							if err != nil {
