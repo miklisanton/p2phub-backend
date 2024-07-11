@@ -3,20 +3,22 @@ services:
   app:
     build:
       context: ./
+    volumes:
+      - ./.env:/app/.env
     depends_on:
       - db
     environment:
       DB_HOST: db
       DB_PORT: 5432
       DB_USER: antonmiklis
-      DB_PASSWORD: 1111
+      DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: p2p_bot
 
   db:
     image: postgres:13
     environment:
       POSTGRES_USER: antonmiklis
-      POSTGRES_PASSWORD: 1111
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: p2p_bot
     volumes:
       - db_data:/var/lib/postgresql/data

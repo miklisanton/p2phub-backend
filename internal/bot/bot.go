@@ -148,6 +148,7 @@ func (bot *Bot) Start() {
 							bot.toDelete = append(bot.toDelete, id)
 						} else {
 							for _, adv := range ads {
+								tracker.ID = 0
 								tracker.Payment = adv.GetPaymentMethods()
 
 								err = bot.trackerService.CreateTracker(tracker)
