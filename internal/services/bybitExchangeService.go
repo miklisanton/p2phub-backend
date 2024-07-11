@@ -157,7 +157,8 @@ func (ex BybitExchange) requestData(page int, currency, side string) (*BybitAdsR
 	return &bybitResponse, nil
 }
 
-func (ex BybitExchange) GetAdvByName(currency, side, username string) (P2PItemI, error) {
+func (ex BybitExchange) GetAdvByName(currency, side, username string) ([]P2PItemI, error) {
+	out := make([]P2PItemI, 0)
 	i := 1
 	for {
 		resp, err := ex.requestData(i, currency, side)
@@ -166,12 +167,16 @@ func (ex BybitExchange) GetAdvByName(currency, side, username string) (P2PItemI,
 		}
 
 		if len(resp.Result.Items) == 0 {
-			return nil, fmt.Errorf("could not find advertisement with username %s", username)
+			if len(out) == 0 {
+				return nil, fmt.Errorf("could not find advertisement with username %s", username)
+			} else {
+				return out, nil
+			}
 		}
 
 		for _, item := range resp.Result.Items {
 			if item.GetName() == username {
-				return item, nil
+				out = append(out, item)
 			}
 		}
 		i++

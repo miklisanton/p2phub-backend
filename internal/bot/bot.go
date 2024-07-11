@@ -134,7 +134,7 @@ func (bot *Bot) Start() {
 							log.Fatalf("error getting exchange name: %s", err)
 						}
 
-						adv, err := exchange.GetAdvByName(tracker.Currency, tracker.Side, username.(string))
+						ads, err := exchange.GetAdsByName(tracker.Currency, tracker.Side, username.(string))
 						if err != nil {
 							id := bot.SendMessage(chatID, err.Error())
 							bot.toDelete = append(bot.toDelete, id)
@@ -147,11 +147,13 @@ func (bot *Bot) Start() {
 							id = bot.SendMessage(chatID, "/new to create new tracker")
 							bot.toDelete = append(bot.toDelete, id)
 						} else {
-							tracker.Payment = adv.GetPaymentMethods()
+							for _, adv := range ads {
+								tracker.Payment = adv.GetPaymentMethods()
 
-							err = bot.trackerService.CreateTracker(tracker)
-							if err != nil {
-								log.Fatal(err)
+								err = bot.trackerService.CreateTracker(tracker)
+								if err != nil {
+									log.Fatal(err)
+								}
 							}
 							nextState, err = sm.Transition(chatID, fsm.AdvertisementFound)
 							if err != nil {
