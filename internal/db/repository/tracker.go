@@ -33,8 +33,6 @@ func (repo *TrackerRepository) Save(tracker *models.Tracker) error {
 	if tracker.ID == 0 {
 		query := `INSERT INTO trackers (user_id, exchange, currency, side, waiting_adv)
 			VALUES ($1, $2, $3, $4, false)
-			ON CONFLICT(user_id, exchange, currency, side) DO UPDATE
-			SET user_id = $1, exchange = $2, currency = $3, side = $4, waiting_adv = false
 			RETURNING id`
 		err := tx.QueryRow(query, tracker.ChatID, tracker.Exchange, tracker.Currency, tracker.Side).Scan(&tracker.ID)
 
