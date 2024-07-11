@@ -202,7 +202,8 @@ func (ex BinanceExchange) RequestData(page int, currency, side string) (*Binance
 
 	return &binanceResponse, nil
 }
-func (ex BinanceExchange) GetAdvByName(currency, side, username string) (P2PItemI, error) {
+func (ex BinanceExchange) GetAdvByName(currency, side, username string) ([]P2PItemI, error) {
+	out := make([]P2PItemI, 0)
 	i := 1
 	for {
 		response, err := ex.RequestData(i, currency, side)
@@ -211,12 +212,16 @@ func (ex BinanceExchange) GetAdvByName(currency, side, username string) (P2PItem
 		}
 		// All pages parsed, adv not found
 		if len(response.Data) == 0 {
-			return nil, fmt.Errorf("could not find advertisement with username %s", username)
+			if len(out) == 0 {
+				return nil, fmt.Errorf("could not find advertisement with username %s", username)
+			} else {
+				return out, nil
+			}
 		}
 
 		for _, item := range response.Data {
 			if item.GetName() == username {
-				return item, nil
+				out = append(out, item)
 			}
 		}
 		i++
