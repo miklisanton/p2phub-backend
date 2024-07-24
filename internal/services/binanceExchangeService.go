@@ -7,12 +7,16 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"p2pbot/internal/config"
 	"strconv"
+	"time"
 )
 
 type BinanceExchange struct {
 	adsEndpoint string
 	name        string
+	maxRetries  int
+	retryDelay  time.Duration
 }
 
 type BinancePayload struct {
@@ -64,8 +68,13 @@ type Advertiser struct {
 	PositiveRate    float64 `json:"positiveRate"`
 }
 
-func NewBinanceExchange() *BinanceExchange {
-	return &BinanceExchange{adsEndpoint: "https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search", name: "Binance"}
+func NewBinanceExchange(config *config.Config) *BinanceExchange {
+	return &BinanceExchange{
+		adsEndpoint: "https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search",
+		name:        "Binance",
+		maxRetries:  config.Exchange.MaxRetries,
+		retryDelay:  time.Second * time.Duration(config.Exchange.RetryDelay),
+	}
 }
 
 func (ex BinanceExchange) GetName() string {
@@ -99,20 +108,39 @@ func (ex BinanceExchange) GetBestAdv(currency, side string, paymentMethods []str
 	}
 
 	jsonPayload, err := json.Marshal(payload)
-
-	resp, err := http.Post(ex.adsEndpoint, "application/json", bytes.NewBuffer(jsonPayload))
 	if err != nil {
-		return nil, fmt.Errorf("could not make request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("bad status: %s", resp.Status)
+		return nil, err
 	}
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("could not read response body: %w", err)
+	var body []byte
+
+	for attempt := 1; attempt <= ex.maxRetries; attempt++ {
+		resp, err := http.Post(ex.adsEndpoint, "application/json", bytes.NewBuffer(jsonPayload))
+		if err == nil {
+			defer resp.Body.Close()
+
+			if resp.StatusCode != http.StatusOK {
+				log.Printf("bad status: %s", resp.Status)
+				log.Println("retrying...")
+				time.Sleep(ex.retryDelay)
+				continue
+			}
+
+			body, err = io.ReadAll(resp.Body)
+			if err != nil {
+				log.Printf("could not read response body: %v", err)
+				log.Println("retrying...")
+				time.Sleep(ex.retryDelay)
+				continue
+			}
+		}
+		// sleep before retry
+		if attempt < ex.maxRetries {
+			time.Sleep(ex.retryDelay)
+			log.Printf("could not connect to binance exchange: %v, retrying...", err)
+		} else {
+			return nil, fmt.Errorf("could not connect to binance exchange: %v, after %d attempts", err, ex.maxRetries)
+		}
 	}
 
 	binanceResponse := BinanceAdsResponse{}
@@ -208,6 +236,7 @@ func (ex BinanceExchange) GetAdsByName(currency, side, username string) ([]P2PIt
 	for {
 		response, err := ex.RequestData(i, currency, side)
 		if err != nil {
+
 			return nil, fmt.Errorf("could not find advertisement with username %s", username)
 		}
 		// All pages parsed, adv not found

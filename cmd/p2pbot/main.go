@@ -13,7 +13,8 @@ import (
 )
 
 var (
-	DB *sqlx.DB
+	DB  *sqlx.DB
+	cfg *config.Config
 )
 
 func init() {
@@ -59,8 +60,8 @@ func main() {
 	}
 
 	//Supported exchanges
-	binance := services.NewBinanceExchange()
-	bybit := services.NewBybitExcahnge()
+	binance := services.NewBinanceExchange(cfg)
+	bybit := services.NewBybitExcahnge(cfg)
 
 	exs := []services.ExchangeI{binance, bybit}
 

@@ -22,6 +22,10 @@ type Config struct {
 	Telegram struct {
 		APIkey string `yaml:"api-key"`
 	}
+	Exchange struct {
+		MaxRetries int `yaml:"max-retries"`
+		RetryDelay int `yaml:"retry-delay"`
+	}
 }
 
 func NewConfig(path string) (*Config, error) {
