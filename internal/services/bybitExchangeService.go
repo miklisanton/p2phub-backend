@@ -165,6 +165,7 @@ func (ex BybitExchange) requestData(page int, currency, side string) (*BybitAdsR
 				time.Sleep(ex.retryDelay)
 				continue
 			}
+			break
 		}
 		// sleep before retry
 		if attempt < ex.maxRetries {

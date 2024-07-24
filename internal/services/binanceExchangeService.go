@@ -133,6 +133,7 @@ func (ex BinanceExchange) GetBestAdv(currency, side string, paymentMethods []str
 				time.Sleep(ex.retryDelay)
 				continue
 			}
+			break
 		}
 		// sleep before retry
 		if attempt < ex.maxRetries {
