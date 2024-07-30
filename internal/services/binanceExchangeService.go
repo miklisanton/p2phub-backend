@@ -204,20 +204,39 @@ func (ex BinanceExchange) RequestData(page int, currency, side string) (*Binance
 	}
 
 	jsonPayload, err := json.Marshal(payload)
-
-	resp, err := http.Post(ex.adsEndpoint, "application/json", bytes.NewBuffer(jsonPayload))
 	if err != nil {
-		return nil, fmt.Errorf("could not make request: %w", err)
+		return nil, err
 	}
-	defer resp.Body.Close()
+	var body []byte
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("bad status: %s", resp.Status)
-	}
+	for attempt := 1; attempt <= ex.maxRetries; attempt++ {
+		resp, err := http.Post(ex.adsEndpoint, "application/json", bytes.NewBuffer(jsonPayload))
+		if err == nil {
+			defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("could not read response body: %w", err)
+			if resp.StatusCode != http.StatusOK {
+				log.Printf("bad status: %s", resp.Status)
+				log.Println("retrying...")
+				time.Sleep(ex.retryDelay)
+				continue
+			}
+
+			body, err = io.ReadAll(resp.Body)
+			if err != nil {
+				log.Printf("could not read response body: %v", err)
+				log.Println("retrying...")
+				time.Sleep(ex.retryDelay)
+				continue
+			}
+			break
+		}
+		// sleep before retry
+		if attempt < ex.maxRetries {
+			time.Sleep(ex.retryDelay)
+			log.Printf("could not connect to binance exchange: %v, retrying...", err)
+		} else {
+			return nil, fmt.Errorf("could not connect to binance exchange: %v, after %d attempts", err, ex.maxRetries)
+		}
 	}
 
 	binanceResponse := BinanceAdsResponse{}
