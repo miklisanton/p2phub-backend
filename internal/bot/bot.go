@@ -237,6 +237,7 @@ func (bot *Bot) MonitorAds(refreshRate time.Duration) error {
 				if err != nil {
 					return err
 				}
+				log.Printf("Best advertisement on %s is %s ", exchange.GetName(), exchangeBestAdv.GetName())
 				// Send notification if best advertisement doesn't match with tracker username
 				if exchangeBestAdv.GetName() != username {
 					// Notify if user reacted on previous notification(updated his adv)
