@@ -123,6 +123,10 @@ func (ex BybitExchange) GetBestAdv(currency, side string, paymentMethods []strin
 		return nil, fmt.Errorf("bybit error: %s", bybitResponse.RetMsg)
 	}
 
+	if len(bybitResponse.Result.Items) == 0 {
+		return nil, fmt.Errorf("no items found")
+	}
+
 	return bybitResponse.Result.Items[0], nil
 }
 
