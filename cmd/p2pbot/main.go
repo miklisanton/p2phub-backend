@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	DB  *sqlx.DB
+    DB  *sqlx.DB
 	cfg *config.Config
 )
 
@@ -73,7 +73,7 @@ func main() {
 	go func() {
 		err = tgbot.MonitorAds(time.Minute * 1)
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
 		}
 	}()
 	go func() {
