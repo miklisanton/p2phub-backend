@@ -73,7 +73,7 @@ func main() {
 	go func() {
 		err = tgbot.MonitorAds(time.Minute * 1)
 		if err != nil {
-			log.Println(err)
+			log.Fatal(err)
 		}
 	}()
 	go func() {
