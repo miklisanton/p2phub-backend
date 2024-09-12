@@ -26,12 +26,22 @@ type Config struct {
 		MaxRetries int `yaml:"max-retries"`
 		RetryDelay int `yaml:"retry-delay"`
 	}
+    Website struct {
+        Port string `yaml:"port"`
+        JWTSecret string
+    }
 }
 
 func NewConfig(path string) (*Config, error) {
 	config := &Config{}
 
-	if err := godotenv.Load(); err != nil {
+    dir, err := os.Getwd()
+    if err != nil {
+        fmt.Println("Error getting working directory:", err)
+        return nil, err
+    }
+    fmt.Println("Current working directory:", dir)
+	if err := godotenv.Load(".env"); err != nil {
 		return nil, fmt.Errorf("no .env file found")
 	}
 

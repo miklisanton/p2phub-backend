@@ -14,31 +14,103 @@ func NewUserRepository(db *sqlx.DB) *UserRepository {
 	return &UserRepository{db}
 }
 
-func (repo *UserRepository) Save(user *models.User) error {
+func (repo *UserRepository) Save(user *models.User) (int, error) {
 	if user == nil {
-		return fmt.Errorf("user is nil")
+		return 0, fmt.Errorf("user is nil")
 	}
 
-	query := `
-		INSERT INTO users(chat_id, binance_name, bybit_name) 
-		VALUES ($1, $2, $3)
-		ON CONFLICT(chat_id) DO UPDATE SET 
-		binance_name = coalesce(NULLIF(excluded.binance_name, ''), users.binance_name),
-		bybit_name = coalesce(NULLIF(excluded.bybit_name, ''), users.bybit_name)`
 
-	_, err := repo.db.Exec(query, user.ChatID, user.BinanceName, user.BybitName)
-	if err != nil {
-		return err
-	}
 
-	return nil
+    if user.ID == 0 {
+        query := `
+            INSERT INTO users(email, password_enc, chat_id) 
+            VALUES ($1, $2, $3)
+            RETURNING id`
+
+        row := repo.db.QueryRow(query,
+                                    user.Email,
+                                    user.Password_en,
+                                    user.ChatID)
+
+        if row.Err() != nil {
+            return 0, row.Err()
+        }
+
+        err := row.Scan(&user.ID)
+        if err != nil {
+            return 0, err
+        }
+
+        return user.ID, nil
+    } else {
+        query := `UPDATE users SET email = $1,
+                    password_enc = $2,
+                    chat_id = $3
+                    WHERE id = $4
+                    RETURNING id`
+
+        row := repo.db.QueryRow(query,
+                                    user.Email,
+                                    user.Password_en,
+                                    user.ChatID,
+                                    user.ID)
+
+        if row.Err() != nil {
+            return 0, row.Err()
+        }
+
+        err := row.Scan(&user.ID)
+        if err != nil {
+            return 0, err
+        }
+
+        return user.ID, nil
+    }
+
 }
 
-func (repo *UserRepository) GetByID(chatID int64) (*models.User, error) {
+func (repo *UserRepository) Update(user *models.User) error {
+    query := `UPDATE users SET email = $1,
+                password_enc = $2,
+                chat_id = $3
+                WHERE id = $4`
+
+    _, err := repo.db.Exec(query, user.Email,
+                                    user.Password_en,
+                                    user.ChatID,
+                                    user.ID)
+    return err
+}
+
+func (repo *UserRepository) GetByChatID(chatID int64) (*models.User, error) {
 	user := &models.User{}
 
 	query := `SELECT * FROM users WHERE chat_id = $1`
 	err := repo.db.Get(user, query, chatID)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (repo *UserRepository) GetByID(ID int) (*models.User, error) {
+	user := &models.User{}
+
+	query := `SELECT * FROM users WHERE id = $1`
+	err := repo.db.Get(user, query, ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (repo *UserRepository) GetByEmail(email string) (*models.User, error) {
+	user := &models.User{}
+
+	query := `SELECT * FROM users WHERE email = $1`
+	err := repo.db.Get(user, query, email)
 	if err != nil {
 		return nil, err
 	}

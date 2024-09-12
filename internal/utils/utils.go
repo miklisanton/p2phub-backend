@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"p2pbot/internal/services"
 	"reflect"
+    "golang.org/x/crypto/bcrypt"
 )
 
 type Notification struct {
@@ -38,4 +39,17 @@ func SetField(obj interface{}, name string, value interface{}) error {
 
 	field.Set(reflect.ValueOf(value))
 	return nil
+}
+
+func HashPassword(password string) (string, error) {
+    hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+    if err != nil {
+        return "", err
+    }
+    return string(hash), nil
+}
+
+func CheckPasswordHash(password, hash string) bool {
+    err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+    return err == nil
 }

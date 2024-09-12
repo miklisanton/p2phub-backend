@@ -20,6 +20,12 @@ func (repo *TrackerRepository) UpdateWaitingFlag(id int64, flag bool) error {
 	return err
 }
 
+func (repo *TrackerRepository) UpdateOutbided(id int64, flag bool) error {
+	query := `UPDATE trackers SET outbided = $1 WHERE id = $2`
+	_, err := repo.db.Exec(query, flag, id)
+	return err
+}
+
 func (repo *TrackerRepository) Save(tracker *models.Tracker) error {
 	if tracker == nil {
 		return fmt.Errorf("tracker is nil")
@@ -31,19 +37,19 @@ func (repo *TrackerRepository) Save(tracker *models.Tracker) error {
 	}
 
 	if tracker.ID == 0 {
-		query := `INSERT INTO trackers (user_id, exchange, currency, side, waiting_adv)
-			VALUES ($1, $2, $3, $4, false)
+		query := `INSERT INTO trackers (user_id, exchange, currency, side, username, waiting_adv)
+			VALUES ($1, $2, $3, $4, $5, false)
 			RETURNING id`
-		err := tx.QueryRow(query, tracker.ChatID, tracker.Exchange, tracker.Currency, tracker.Side).Scan(&tracker.ID)
+		err := tx.QueryRow(query, tracker.UserID, tracker.Exchange, tracker.Currency, tracker.Side, tracker.Username).Scan(&tracker.ID)
 
 		if err != nil {
 			tx.Rollback()
-			return fmt.Errorf("error creating new tracker :", err)
+			return fmt.Errorf("error creating new tracker : %v", err)
 		}
 	} else {
-		query := `UPDATE trackers SET exchange = $1, currency = $2, side = $3, waiting_adv = false
-			WHERE id = $4`
-		_, err = tx.Exec(query, tracker.Exchange, tracker.Currency, tracker.Side, tracker.ID)
+		query := `UPDATE trackers SET exchange = $1, currency = $2, side = $3, username = $4, waiting_adv = false
+			WHERE id = $5`
+		_, err = tx.Exec(query, tracker.Exchange, tracker.Currency, tracker.Side, tracker.Username, tracker.ID)
 		if err != nil {
 			tx.Rollback()
 			return err
@@ -74,9 +80,37 @@ func (repo *TrackerRepository) Save(tracker *models.Tracker) error {
 
 func (repo *TrackerRepository) GetAllTrackers() ([]*models.UserTracker, error) {
 	var trackers []*models.UserTracker
-	query := `SELECT t.id, t.exchange, t.currency, t.side, t.waiting_adv, u.chat_id, u.binance_name, u.bybit_name
-		FROM trackers t JOIN public.users u on t.user_id = u.chat_id`
+	query := `SELECT t.id, t.exchange, t.currency, t.side, t.username, t.waiting_adv, t.outbided, u.id, u.chat_id 
+		FROM trackers t JOIN public.users u on t.user_id = u.id`
 	err := repo.db.Select(&trackers, query)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, tracker := range trackers {
+		rows, err := repo.db.Query("SELECT payment_method FROM methods WHERE tracker_id = $1", tracker.ID)
+		if err != nil {
+			return nil, fmt.Errorf("error getting payment methods: %s", err)
+		}
+
+		for rows.Next() {
+			var paymentMethod string
+			err = rows.Scan(&paymentMethod)
+			if err != nil {
+				return nil, fmt.Errorf("error getting payment methods: %s", err)
+			}
+
+			tracker.Payment = append(tracker.Payment, paymentMethod)
+		}
+	}
+	return trackers, nil
+}
+
+func (repo *TrackerRepository) GetTrackersByUserId(id int) ([]*models.UserTracker, error) {
+	var trackers []*models.UserTracker
+	query := `SELECT t.id, t.exchange, t.currency, t.side, t.username, t.waiting_adv, u.id, u.chat_id
+		FROM trackers t JOIN public.users u on t.user_id = u.id WHERE u.id = $1`
+	err := repo.db.Select(&trackers, query, id)
 	if err != nil {
 		return nil, err
 	}

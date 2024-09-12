@@ -15,7 +15,7 @@ services:
       DB_NAME: p2p_bot
 
   db:
-    image: postgres:13
+    image: postgres:15
     environment:
       POSTGRES_USER: antonmiklis
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -27,3 +27,4 @@ services:
 
 volumes:
   db_data:
+

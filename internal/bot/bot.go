@@ -60,7 +60,8 @@ func (bot *Bot) Start() {
 			bot.toDelete = append(bot.toDelete, update.Message.MessageID)
 			log.Println(msg)
 
-			tracker := bot.trackerService.GetTrackerStaging(chatID)
+            // TODO
+			tracker := bot.trackerService.GetTrackerStaging(0)
 
 			var nextState fsm.State
 
@@ -101,18 +102,8 @@ func (bot *Bot) Start() {
 					log.Fatal(err)
 				}
 
-				bybitName, binanceName := "", ""
-				if tracker.Exchange == "bybit" {
-					bybitName = msg
-				}
-				if tracker.Exchange == "binance" {
-					binanceName = msg
-				}
-
-				err = bot.userService.CreateUser(&models.User{
-					ChatID:      chatID,
-					BinanceName: binanceName,
-					BybitName:   bybitName,
+				_, err = bot.userService.CreateUser(&models.User{
+					ChatID:      &chatID,
 				})
 				if err != nil {
 					log.Fatal(err)
@@ -124,7 +115,7 @@ func (bot *Bot) Start() {
 				tracker.Side = strings.ToUpper(msg)
 				for _, exchange := range bot.exchanges {
 					if strings.ToLower(exchange.GetName()) == tracker.Exchange {
-						user, err := bot.userService.GetUserById(chatID)
+						user, err := bot.userService.GetUserByChatID(chatID)
 						if err != nil {
 							log.Fatal(err)
 						}
@@ -133,6 +124,10 @@ func (bot *Bot) Start() {
 						if err != nil {
 							log.Fatalf("error getting exchange name: %s", err)
 						}
+
+                        if err := bot.trackerService.VerifyTracker(tracker, true); err != nil {
+                            log.Fatal("error while verifying tracker: ", err)
+                        }
 
 						ads, err := exchange.GetAdsByName(tracker.Currency, tracker.Side, username.(string))
 						if err != nil {
@@ -152,6 +147,7 @@ func (bot *Bot) Start() {
 								tracker.Payment = adv.GetPaymentMethods()
 
 								err = bot.trackerService.CreateTracker(tracker)
+                                      
 								if err != nil {
 									log.Fatal(err)
 								}
@@ -244,7 +240,7 @@ func (bot *Bot) MonitorAds(refreshRate time.Duration) error {
 					// Notify if user reacted on previous notification(updated his adv)
 					if !tracker.Waiting {
 						bot.NotificationCh <- utils.Notification{
-							ChatID:    tracker.ChatID,
+							ChatID:    *tracker.ChatID,
 							Data:      exchangeBestAdv,
 							Exchange:  tracker.Exchange,
 							Direction: tracker.Side,
