@@ -19,6 +19,10 @@ type Config struct {
 		Password string `yaml:"password"`
 		SSL      string `yaml:"ssl"`
 	}
+    Redis struct {
+        Host string `yaml:"host"`
+        Port string `yaml:"port"`
+    }
 	Telegram struct {
 		APIkey string `yaml:"api-key"`
 	}

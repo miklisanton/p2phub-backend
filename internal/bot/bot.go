@@ -125,7 +125,7 @@ func (bot *Bot) Start() {
 							log.Fatalf("error getting exchange name: %s", err)
 						}
 
-                        if err := bot.trackerService.VerifyTracker(tracker, true); err != nil {
+                        if err := bot.trackerService.ValidateTracker(tracker, true); err != nil {
                             log.Fatal("error while verifying tracker: ", err)
                         }
 

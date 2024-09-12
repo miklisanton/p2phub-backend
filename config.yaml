@@ -5,6 +5,10 @@ database:
   user: antonmiklis
   password: ${DB_PASSWORD}
   ssl: disable
+redis:
+  host: localhost
+  port: 6479
+  db: 0
 telegram:
   api-key: ${BOT_TOKEN}
 exchange:

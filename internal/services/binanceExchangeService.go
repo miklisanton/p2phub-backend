@@ -2,14 +2,19 @@ package services
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"p2pbot/internal/config"
+	"p2pbot/internal/rediscl"
 	"strconv"
+	"strings"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 )
 
 type BinanceExchange struct {
@@ -275,6 +280,131 @@ func (ex BinanceExchange) GetAdsByName(currency, side, username string) ([]P2PIt
 		}
 		i++
 	}
+}
+
+func (ex BinanceExchange) FetchCurrencies() ([]string, error) {
+    url := "https://p2p.binance.com/bapi/c2c/v1/friendly/c2c/trade-rule/fiat-list"
+    resp, err := http.Post(url, "", nil)
+    if err != nil {
+        return nil, err
+    }
+
+    defer resp.Body.Close()
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        return nil, err
+    }
+
+    var binanceFiatListResponse struct {
+        Code    string   `json:"code"`
+        Data    []struct{
+            Currency string `json:"currencyCode"`
+        } `json:"data"`
+    }
+    if err := json.Unmarshal(body, &binanceFiatListResponse); err != nil {
+        return nil, fmt.Errorf("could not parse response: %w", err)
+    }
+
+    if binanceFiatListResponse.Code != "000000" {
+        return nil, fmt.Errorf("binance error: %s", binanceFiatListResponse.Code)
+    }
+    
+    out := make([]string, 0)
+    for _, currency := range binanceFiatListResponse.Data {
+        out = append(out, currency.Currency)
+    }
+
+
+    return out, nil
+}
+
+func (ex BinanceExchange) FetchPaymentMethods(currencies []string) (map[string][]PaymentMethod, error) {
+    url := "https://p2p.binance.com/bapi/c2c/v2/public/c2c/adv/filter-conditions"
+
+    out := make(map[string][]PaymentMethod)
+    for _, currency := range currencies {
+        reader := strings.NewReader(fmt.Sprintf(`{"fiat":"%s"}`, currency))
+        resp, err := http.Post(url, "application/json", reader)
+        if err != nil {
+            return nil, err
+        }
+        
+        defer resp.Body.Close()
+        body, err := io.ReadAll(resp.Body)
+        if err != nil {
+            return nil, err
+        }
+
+        var binancePaymentMethodsResponse struct {
+            Code    string   `json:"code"`
+            Data    struct{
+                PayTypes []struct{
+                    Identifier string `json:"identifier"`
+                    Name       string `json:"tradeMethodShortName"`
+                } `json:"tradeMethods"`
+
+            } `json:"data"`
+        }
+        if err := json.Unmarshal(body, &binancePaymentMethodsResponse); err != nil {
+            return nil, fmt.Errorf("could not parse response: %w", err)
+        }
+
+        if binancePaymentMethodsResponse.Code != "000000" {
+            return nil, fmt.Errorf("binance error: %s", binancePaymentMethodsResponse.Code)
+        }
+
+        methodsList := make([]PaymentMethod, 0)
+        for _, method := range binancePaymentMethodsResponse.Data.PayTypes {
+            methodsList = append(methodsList, PaymentMethod{
+                Id: method.Identifier,
+                Name: method.Name,
+            })
+        }
+        out[currency] = methodsList
+    }
+    return out, nil
+}
+
+func (ex BinanceExchange) GetCachedPaymentMethods() (map[string][]PaymentMethod, error) {
+    // Retrieve from cache
+    ctx := context.Background()
+    currenciesJSON, err := rediscl.RDB.Client.JSONGet(ctx, "binance:currencies", "$").Result()
+    if err == redis.Nil || currenciesJSON == "" {
+        // Cache miss
+        currencies, err := ex.FetchCurrencies()
+        if err != nil {
+            return nil, err
+        }
+        methods, err := ex.FetchPaymentMethods(currencies)
+        if err != nil {
+            return nil, err
+        }
+        jsonMethods, err := json.Marshal(methods)
+        if err != nil {
+            return nil, err
+        }
+        // Cache the result
+        if err := rediscl.RDB.Client.JSONSet(ctx, "binance:currencies", "$", string(jsonMethods)).Err(); err != nil {
+            return nil, err
+        }
+        // Set expiration
+        if err := rediscl.RDB.Client.Expire(ctx, "binance:currencies", 12 * time.Hour).Err(); err != nil {
+            return nil, err
+        }
+        return methods, nil
+    }
+
+    if err != nil && err != redis.Nil {
+        return nil, err
+    }
+
+    currenciesJSON = currenciesJSON[1 : len(currenciesJSON)-1]
+    paymentMethods := make(map[string][]PaymentMethod)
+    if err := json.Unmarshal([]byte(currenciesJSON), &paymentMethods); err != nil {
+        return nil, err
+    }
+    
+    return paymentMethods, nil
 }
 
 func (i DataItem) GetPaymentMethods() []string {
