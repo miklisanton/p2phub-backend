@@ -1,7 +1,7 @@
 package handlers
 
 import (
-    "log"
+    "p2pbot/internal/utils"
     "fmt"
 	"net/http"
 	"github.com/labstack/echo/v4"
@@ -77,16 +77,128 @@ func (contr *Controller) CreateTracker(c echo.Context) error {
             },
         })
     }
-    
-    log.Printf("Find %d ads", len(ads))
+
+    utils.Logger.LogInfo().Fields(map[string]interface{}{
+        "email": email,
+        exchange.GetName(): ads,
+    }).Msg("Ads found")
+
+    createdTrackers := make([]*models.Tracker, 0)
     for _, adv := range ads {
         tracker.Payment = adv.GetPaymentMethods()
 
         err = contr.trackerService.CreateTracker(tracker)
+        createdTrackers = append(createdTrackers, tracker)
         if err != nil {
             return err
         }
     }
 
-    return c.String(http.StatusCreated, "TODO")
+    return c.JSON(http.StatusCreated, map[string]any{
+        "message": "Trackers created",
+        "trackers": createdTrackers,
+    })
+}
+
+func (contr *Controller) GetPaymentMethods (c echo.Context) error {
+    email := c.Get("email").(string)
+    // Check query parameters
+    exchange := c.QueryParam("exchange")
+    if exchange == "" {
+        return c.JSON(http.StatusBadRequest, map[string]any{
+            "message": "exchange not found",
+            "errors": map[string]any{
+                "exchange": "query parameter not provided",
+            },
+                
+        })
+    }
+    exch, ok := contr.exchanges[exchange]
+    if !ok {
+        return c.JSON(http.StatusBadRequest, map[string]any{
+            "message": "exchange not found",
+            "errors": map[string]any{
+                "exchange": fmt.Sprintf("%s not supported", exchange),
+            },
+        })
+    }
+
+    currency := c.QueryParam("currency")
+    if currency == "" {
+        return c.JSON(http.StatusBadRequest, map[string]any{
+            "message": "currency not found",
+            "errors": map[string]any{
+                "currency": "query parameter not provided",
+            },
+        })
+    }
+
+    supportedCurrencies, err := exch.GetCachedCurrencies()
+    if err != nil {
+        return err
+    }
+    if !utils.Contains(supportedCurrencies, currency) {
+        return c.JSON(http.StatusBadRequest, map[string]any{
+            "message": "currency not found",
+            "errors": map[string]any{
+                "currency": fmt.Sprintf("%s not supported", currency),
+            },
+        })
+    }
+    out, err := exch.GetCachedPaymentMethods(currency)
+    if err != nil {
+        return err
+    }
+
+    utils.Logger.LogInfo().Fields(map[string]interface{}{
+        "email": email,
+        "exchange": exchange,
+        "currency": currency,
+        "options": out,
+    }).Msg("Payment methods requested")
+
+    return c.JSON(http.StatusOK, map[string]any{
+        "message": "Form options",
+        "options": out,
+    })
+}
+
+func (contr *Controller) GetCurrencies(c echo.Context) error {
+    email := c.Get("email").(string)
+    // Check query parameters
+    exchange := c.QueryParam("exchange")
+    if exchange == "" {
+        return c.JSON(http.StatusBadRequest, map[string]any{
+            "message": "exchange not found",
+            "errors": map[string]any{
+                "exchange": "query parameter not provided",
+            },
+                
+        })
+    }
+    exch, ok := contr.exchanges[exchange]
+    if !ok {
+        return c.JSON(http.StatusBadRequest, map[string]any{
+            "message": "exchange not found",
+            "errors": map[string]any{
+                "exchange": fmt.Sprintf("%s not supported", exchange),
+            },
+        })
+    }
+
+    out, err := exch.GetCachedCurrencies()
+    if err != nil {
+        return err
+    }
+
+    utils.Logger.LogInfo().Fields(map[string]interface{}{
+        "email": email,
+        "exchange": exchange,
+        "options": out,
+    }).Msg("Currencies requested")
+
+    return c.JSON(http.StatusOK, map[string]any{
+        "message": "Currencies",
+        "options": out,
+    })
 }

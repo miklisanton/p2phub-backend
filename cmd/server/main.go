@@ -1,6 +1,7 @@
 package main
 
 import (
+    "p2pbot/internal/rediscl"
     "github.com/labstack/echo/v4"
     "p2pbot/internal/app"
     "p2pbot/internal/handlers"
@@ -25,6 +26,8 @@ func main() {
 
 	binance := services.NewBinanceExchange(cfg)
 	bybit := services.NewBybitExcahnge(cfg)
+
+    rediscl.InitRedisClient(cfg.Redis.Host, cfg.Redis.Port)
 
     controller := handlers.NewController(userService,
                                             trackerService,
@@ -52,6 +55,8 @@ func main() {
 
     privateGroup.GET("/trackers", controller.GetTrackers)
     privateGroup.POST("/trackers", controller.CreateTracker)
+    privateGroup.GET("/trackers/options/methods", controller.GetPaymentMethods)
+    privateGroup.GET("/trackers/options/currencies", controller.GetCurrencies)
     
 
     e.Logger.Fatal(e.Start(":1323"))

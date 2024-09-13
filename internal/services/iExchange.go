@@ -5,7 +5,8 @@ type ExchangeI interface {
 	GetBestAdv(currency, side string, paymentMethods []string) (P2PItemI, error)
 	GetName() string
 	GetAdsByName(currency, side, username string) ([]P2PItemI, error)
-    GetPaymentMethods() (map[string][]string, error)
+    GetCachedPaymentMethods(curr string) ([]PaymentMethod, error)
+    GetCachedCurrencies() ([]string, error)
 }
 
 // P2PItemI is an interface for exchage p2p api responses
@@ -14,6 +15,7 @@ type P2PItemI interface {
 	GetName() string
 	GetQuantity() (float64, float64, float64)
 	GetPaymentMethods() []string
+    String() string
 }
 
 // PaymentMethod is a struct for payment methods

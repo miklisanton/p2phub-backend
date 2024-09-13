@@ -72,12 +72,12 @@ func TestMain(m *testing.M) {
 //}
 
 func TestBybitGetCachedMethods(t *testing.T) {
-    currencies, err := bybit.GetCachedPaymentMethods()
+    currencies, err := bybit.GetCachedPaymentMethods("CZK")
     if err != nil {
         t.Errorf("Error: %v", err)
     }
 
-    t.Log("result: ", currencies["CZK"])
+    t.Log("result: ", currencies)
 }
 
 //func TestBinanceFetchMethods(t *testing.T) {
@@ -95,10 +95,28 @@ func TestBybitGetCachedMethods(t *testing.T) {
 //}
 
 func TestBinanceGetCachedMethods(t *testing.T) {
-    currencies, err := binance.GetCachedPaymentMethods()
+    currencies, err := binance.GetCachedPaymentMethods("")
     if err != nil {
         t.Errorf("Error: %v", err)
     }
 
-    t.Log("result: ", currencies["CZK"])
+    t.Log("result: ", currencies)
+}
+
+func TestBinanceGetCachedCurrencies(t *testing.T) {
+    currencies, err := binance.GetCachedCurrencies()
+    if err != nil {
+        t.Errorf("Error: %v", err)
+    }
+
+    t.Log("result: ", currencies)
+}
+
+func TestBybitGetCachedCurrencies(t *testing.T) {
+    currencies, err := bybit.GetCachedCurrencies()
+    if err != nil {
+        t.Errorf("Error: %v", err)
+    }
+
+    t.Log("result: ", currencies)
 }
