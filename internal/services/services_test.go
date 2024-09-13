@@ -1,7 +1,6 @@
 package services_test
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"p2pbot/internal/app"
@@ -72,21 +71,13 @@ func TestMain(m *testing.M) {
 //    t.Log("result: ", res)
 //}
 
-func TestCacheGet(t *testing.T) {
-    ctx := context.Background()
-    allMethods, currencyMap, err := bybit.GetCachedPayments(ctx)
+func TestBybitGetCachedMethods(t *testing.T) {
+    currencies, err := bybit.GetCachedPaymentMethods()
     if err != nil {
         t.Errorf("Error: %v", err)
     }
-    t.Log(allMethods, currencyMap["BYN"])
-}
 
-func TestGetMethodsMap(t *testing.T) {
-    methods, err := bybit.GetPaymentMethods()
-    if err != nil {
-        t.Errorf("Error: %v", err)
-    }
-    t.Log(methods["RUB"])
+    t.Log("result: ", currencies["CZK"])
 }
 
 //func TestBinanceFetchMethods(t *testing.T) {
@@ -109,5 +100,5 @@ func TestBinanceGetCachedMethods(t *testing.T) {
         t.Errorf("Error: %v", err)
     }
 
-    t.Log("result: ", currencies)
+    t.Log("result: ", currencies["CZK"])
 }

@@ -2,7 +2,6 @@ package services
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -366,8 +365,8 @@ func (ex BinanceExchange) FetchPaymentMethods(currencies []string) (map[string][
 }
 
 func (ex BinanceExchange) GetCachedPaymentMethods() (map[string][]PaymentMethod, error) {
+    ctx := rediscl.RDB.Ctx 
     // Retrieve from cache
-    ctx := context.Background()
     currenciesJSON, err := rediscl.RDB.Client.JSONGet(ctx, "binance:currencies", "$").Result()
     if err == redis.Nil || currenciesJSON == "" {
         // Cache miss

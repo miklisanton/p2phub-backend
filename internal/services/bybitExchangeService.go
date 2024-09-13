@@ -2,7 +2,6 @@ package services
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -246,124 +245,97 @@ func (ex BybitExchange) GetAdsByName(currency, side, username string) ([]P2PItem
 	}
 }
 
-func (ex BybitExchange) FetchAllPaymentList() (string, error) {
+func (ex BybitExchange) FetchAllPaymentList() (map[string][]PaymentMethod, error) {
     url := "https://api2.bybit.com/fiat/otc/configuration/queryAllPaymentList"
 
     resp, err := http.Post(url, "", nil)
     if err != nil {
-        return "", fmt.Errorf("could not get list of all currencies and payment methods: %w", err)
+        return nil, fmt.Errorf("could not get list of all currencies and payment methods: %w", err)
     }
     defer resp.Body.Close()
 
     body, err := io.ReadAll(resp.Body)
     if err != nil {
-        return "", fmt.Errorf("could not read response body: %w", err)
+        return nil, fmt.Errorf("could not read response body: %w", err)
     }
     log.Println(string(body))
 
     jsonResp := struct {
         RetCode int    `json:"ret_code"`
+        Result struct {
+            CurrencyMapStr string `json:"currencyPaymentIdMap"`
+            Payments      []BybitPayment `json:"paymentConfigVo"`
+        } `json:"result"`
     }{}
 
     if err := json.Unmarshal(body, &jsonResp); err != nil {
-        return "", fmt.Errorf("could not parse response: %w", err)
+        return nil, fmt.Errorf("could not parse response: %w", err)
     }
 
     if jsonResp.RetCode != 0 {
-        return "", fmt.Errorf("bybit error: %s", jsonResp.RetCode)
+        return nil, fmt.Errorf("bybit error: %s", jsonResp.RetCode)
     }
-
-    return string(body), nil
-}
-
-func (ex BybitExchange) GetCachedPayments(ctx context.Context) ([]BybitPayment, map[string][]int, error) {
-    // Check if currencies are cached
-    currenciesMapJSON, err := rediscl.RDB.Client.JSONGet(ctx, 
-                "bybit:currencies", "$.result.currencyPaymentIdMap").Result()
-
-    paymentsJSON, err := rediscl.RDB.Client.JSONGet(ctx, 
-                "bybit:currencies", "$.result.paymentConfigVo[*]").Result()
-
-    if err == redis.Nil || currenciesMapJSON == "" || paymentsJSON == "" {
-        // Cache miss
-        apiData, err := ex.FetchAllPaymentList()
-        if err != nil {
-            return nil, nil, err
-        }
-        // Cache the data
-        err = rediscl.RDB.Client.JSONSet(ctx, "bybit:currencies", "$", apiData).Err()
-        if err != nil {
-            return nil, nil, fmt.Errorf("could not cache currencies: %w", err)
-        }
-        // Set expiration time
-        err = rediscl.RDB.Client.Expire(ctx, "bybit:currencies", 12 * time.Hour).Err()
-        if err != nil {
-            return nil, nil, fmt.Errorf("could not set expiration time: %w", err)
-        }
-        // Retrieve needed JSON fields from cache
-        currenciesMapJSON, err = rediscl.RDB.Client.JSONGet(ctx, 
-                    "bybit:currencies.result.currencyPaymentIdMap", "$").Result()
-
-        paymentsJSON, err = rediscl.RDB.Client.JSONGet(ctx, 
-                    "bybit:currencies.result.paymentConfigVo", "$").Result()
+    // Convert json string to map
+    CurrencyMap := make(map[string][]int)
+    if err := json.Unmarshal([]byte(jsonResp.Result.CurrencyMapStr), &CurrencyMap); err != nil {
+        return nil, fmt.Errorf("could not parse currency map: %w", err)
     }
-
-    if  err != nil && err != redis.Nil {
-        return nil, nil, fmt.Errorf("could not get currencies from cache: %w", err)
-    }
-
-    // Get the list of payment methods and ids
-    payments := make([]BybitPayment, 0)
-    if err := json.Unmarshal([]byte(paymentsJSON), &payments); err != nil {
-        return nil, nil, fmt.Errorf("could not parse payments: %w", err)
-    }
-    //Get the list of currencies and supported payment ids
-    paymentMapString := make([]string, 0)
-    if err := json.Unmarshal([]byte(currenciesMapJSON), &paymentMapString); err != nil {
-        return nil, nil, fmt.Errorf("could not parse currencies: %w", err)
-    }
-    currencyPaymentMap := map[string][]int{}
-    if err := json.Unmarshal([]byte(paymentMapString[0]), &currencyPaymentMap); err != nil {
-        return nil, nil, fmt.Errorf("could not parse currencies: %w", err)
-    }
-
-    // Create a map of currency IDs to their names and vice versa
-    //idToName := make(map[string]string)
-    //nameToID := make(map[string]string)
-    //for _, payment := range payments {
-    //    idToName[payment.PaymentType] = payment.PaymentName
-    //    nameToID[payment.PaymentName] = payment.PaymentType
-    //}
-
-    
-    return payments, currencyPaymentMap, nil
-}
-
-func (ex BybitExchange) GetPaymentMethods() (map[string][]PaymentMethod, error) {
-    ctx := context.Background()
-    payments, currencyMap, err := ex.GetCachedPayments(ctx)
-    if err != nil {
-        return nil, err
-    }
-    // Convert slice to map
+    // Convert slice of Payment Mehods to map of IDs to names
     idToName := make(map[string]string)
-    for _, payment := range payments {
+    for _, payment := range jsonResp.Result.Payments {
         idToName[payment.PaymentType] = payment.PaymentName
     }
-    // Create new map with PaymentMethod struct as value
-    currencyMapString := make(map[string][]PaymentMethod, 0)
-    for key, value := range currencyMap {
+    // Create new map which holds PaymentMethod struct 
+    currencyPayMethodMap := make(map[string][]PaymentMethod, 0)
+    for key, value := range CurrencyMap {
         paymentNames := make([]PaymentMethod, 0)
         for _, id := range value {
             paymentNames = append(paymentNames, PaymentMethod{
                 Name: idToName[strconv.Itoa(id)],
                 Id: strconv.Itoa(id),
         })}
-        currencyMapString[key] = paymentNames
+        currencyPayMethodMap[key] = paymentNames
     }
 
+    return currencyPayMethodMap, nil
+}
 
-    return currencyMapString, nil
+func (ex BybitExchange) GetCachedPaymentMethods() (map[string][]PaymentMethod, error) {
+    ctx := rediscl.RDB.Ctx 
+    // Retrieve from cache
+    currenciesJSON, err := rediscl.RDB.Client.JSONGet(ctx, "bybit:currencies", "$").Result()
+    if err == redis.Nil || currenciesJSON == "" {
+        // Cache miss
+        methods, err := ex.FetchAllPaymentList()
+        if err != nil {
+            return nil, err
+        }
+        jsonMethods, err := json.Marshal(methods)
+        if err != nil {
+            return nil, err
+        }
+        // Cache the result
+        if err := rediscl.RDB.Client.JSONSet(ctx, "bybit:currencies", "$", string(jsonMethods)).Err(); err != nil {
+            return nil, err
+        }
+        // Set expiration
+        if err := rediscl.RDB.Client.Expire(ctx, "bybit:currencies", 12 * time.Hour).Err(); err != nil {
+            return nil, err
+        }
+        return methods, nil
+    }
+
+    if err != nil && err != redis.Nil {
+        return nil, err
+    }
+
+    currenciesJSON = currenciesJSON[1 : len(currenciesJSON)-1]
+    paymentMethods := make(map[string][]PaymentMethod)
+    if err := json.Unmarshal([]byte(currenciesJSON), &paymentMethods); err != nil {
+        return nil, err
+    }
+    
+    return paymentMethods, nil
 }
 
 func (i Item) GetPaymentMethods() []string {
