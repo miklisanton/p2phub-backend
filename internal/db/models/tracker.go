@@ -9,5 +9,5 @@ type Tracker struct {
     Username string   `db:"username"`
 	Waiting  bool     `db:"waiting_adv"`
     Outbided bool     `db:"outbided"`
-	Payment  []string `db:"-"`
+	Payment  []PaymentMethod `db:"-"`
 }

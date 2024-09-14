@@ -55,6 +55,7 @@ func main() {
 
     privateGroup.GET("/trackers", controller.GetTrackers)
     privateGroup.POST("/trackers", controller.CreateTracker)
+    privateGroup.DELETE("/trackers/:id", controller.DeleteTracker)
     privateGroup.GET("/trackers/options/methods", controller.GetPaymentMethods)
     privateGroup.GET("/trackers/options/currencies", controller.GetCurrencies)
     

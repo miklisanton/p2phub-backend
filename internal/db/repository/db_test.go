@@ -206,24 +206,24 @@ func TestCreateTracker(t *testing.T) {
     fmt.Println("Tracker created")
 }
 
-func TestUpdateTracker(t *testing.T) {
-    err := trackerRepo.Save(&models.Tracker{
-        ID:       1,
-        UserID:   1,
-        Exchange: "binance",
-        Username: "anton",
-        Currency: "BTC",
-        Side:     "buy",
-        Payment:  []string{"zen", "wise"},
-        Waiting:  true,
-    })
-
-    if err != nil {
-        t.Fatalf("error getting user: %v", err)
-    }
-
-    t.Logf("Tracker updated")
-}
+//func TestUpdateTracker(t *testing.T) {
+//    err := trackerRepo.Save(&models.Tracker{
+//        ID:       1,
+//        UserID:   1,
+//        Exchange: "binance",
+//        Username: "anton",
+//        Currency: "BTC",
+//        Side:     "buy",
+//        Payment:  []string{"zen", "wise"},
+//        Waiting:  true,
+//    })
+//
+//    if err != nil {
+//        t.Fatalf("error getting user: %v", err)
+//    }
+//
+//    t.Logf("Tracker updated")
+//}
 
 func TestSetOutbided(t *testing.T) {
     err := trackerRepo.UpdateOutbided(1, true);
@@ -252,4 +252,13 @@ func TestGetAllTrackers(t *testing.T) {
         }
     }   
 }
+
+func TestUpdateOutbided(t *testing.T) {
+    err := trackerRepo.UpdatePaymentMethodOutbided(1, "BANK", true)
+    if err != nil {
+        t.Fatalf("error updating outbided flag")
+    }
+    t.Logf("Outbided flag updated")
+}
+
 

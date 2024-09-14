@@ -82,6 +82,18 @@ func (s *TrackerService) GetTrackersByUserId(id int) ([]*models.UserTracker, err
 	return s.repo.GetTrackersByUserId(id)
 }
 
+func (s *TrackerService) GetTrackerById(id int) (*models.Tracker, error) {
+	return s.repo.GetTrackerById(id)
+}
+
+func (s *TrackerService) DeleteTracker(id int) error {
+    count ,err := s.repo.DeleteTracker(id)
+    if  count == 0 {
+        return fmt.Errorf("Tracker not found")
+    } 
+    return err 
+}
+
 func (s *TrackerService) GetTrackerStaging(id int) *models.Tracker {
 	tr, ok := s.trStaging[id]
 	if !ok {

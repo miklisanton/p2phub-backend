@@ -1,17 +1,28 @@
 package handlers
 
 import (
-    "p2pbot/internal/utils"
-    "fmt"
+	"database/sql"
+	"fmt"
 	"net/http"
+	"p2pbot/internal/db/models"
+	"p2pbot/internal/requests"
+	"p2pbot/internal/utils"
+	"strconv"
+
 	"github.com/labstack/echo/v4"
-    "p2pbot/internal/requests"
-    "p2pbot/internal/db/models"
 )
 
 func (contr *Controller) GetTrackers(c echo.Context) error {
     email := c.Get("email").(string)
     u, err := contr.userService.GetUserByEmail(email)
+    if err == sql.ErrNoRows {
+        return c.JSON(http.StatusNotFound, map[string]any{
+            "message": "User not found",
+            "errors": map[string]any{
+                "user": "not found",
+            },
+        })
+    }
     if err != nil {
         return err
     }
@@ -29,6 +40,15 @@ func (contr *Controller) GetTrackers(c echo.Context) error {
 func (contr *Controller) CreateTracker(c echo.Context) error {
     email := c.Get("email").(string)
     u, err := contr.userService.GetUserByEmail(email)
+    if err == sql.ErrNoRows {
+        return c.JSON(http.StatusNotFound, map[string]any{
+            "message": "User not found",
+            "errors": map[string]any{
+                "user": "not found",
+            },
+        })
+    }
+
     if err != nil {
         return err
     }
@@ -83,15 +103,25 @@ func (contr *Controller) CreateTracker(c echo.Context) error {
         exchange.GetName(): ads,
     }).Msg("Ads found")
 
-    createdTrackers := make([]*models.Tracker, 0)
+    createdTrackers := make([]models.Tracker, 0)
     for _, adv := range ads {
-        tracker.Payment = adv.GetPaymentMethods()
+        // Recieve payment methods from ad
+        pmStrings := adv.GetPaymentMethods() 
+        pms := make([]models.PaymentMethod, 0)
+        for _, p := range pmStrings {
+            pms = append(pms, models.PaymentMethod{
+                Name: p,
+            })
+        }
+
+        tracker.Payment = pms
 
         err = contr.trackerService.CreateTracker(tracker)
-        createdTrackers = append(createdTrackers, tracker)
+        createdTrackers = append(createdTrackers, *tracker)
         if err != nil {
             return err
         }
+        tracker.ID = 0
     }
 
     return c.JSON(http.StatusCreated, map[string]any{
@@ -99,6 +129,61 @@ func (contr *Controller) CreateTracker(c echo.Context) error {
         "trackers": createdTrackers,
     })
 }
+
+func (contr *Controller) DeleteTracker(c echo.Context) error {
+    email := c.Get("email").(string)
+    u, err := contr.userService.GetUserByEmail(email)
+    if err == sql.ErrNoRows {
+        return c.JSON(http.StatusNotFound, map[string]any{
+            "message": "User not found",
+            "errors": map[string]any{
+                "user": "not found",
+            },
+        })
+    }
+    if err != nil {
+        return err
+    }
+
+    trackerID, err := strconv.Atoi(c.Param("id"))
+    if err != nil {
+        return c.JSON(http.StatusBadRequest, map[string]any{
+            "message": "Invalid tracker ID",
+            "errors": map[string]any{
+                "tracker": "invalid ID",
+            },
+        })
+    }
+    tracker, err := contr.trackerService.GetTrackerById(trackerID)
+    if err != nil {
+        return c.JSON(http.StatusNotFound, map[string]any{
+            "message": "Tracker not found",
+            "errors": map[string]any{
+                "tracker": "not found",
+            },
+        })
+    }
+    // Check if tracker created by user
+    if tracker.UserID != u.ID {
+        return c.JSON(http.StatusForbidden, map[string]any{
+            "message": "Forbidden",
+            "errors": map[string]any{
+                "tracker": "not found",
+            },
+        })
+    }
+    // Delete tracker from database
+    err = contr.trackerService.DeleteTracker(trackerID)
+    if err != nil {
+        return err
+    }
+    return c.JSON(http.StatusOK, map[string]any{
+        "message": "Tracker deleted",
+        "tracker": tracker.ID,
+    })
+}
+
+
 
 func (contr *Controller) GetPaymentMethods (c echo.Context) error {
     email := c.Get("email").(string)
