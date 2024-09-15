@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"database/sql"
+    "p2pbot/internal/rediscl"
 	"log"
 	"net/http"
 	"p2pbot/internal/JWTConfig"
@@ -12,6 +14,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
+	"github.com/teris-io/shortid"
 )
 
 
@@ -124,4 +127,36 @@ func (contr *Controller) Login(c echo.Context) error {
         "message": "Login successful",
         "token": tokenString,
     })
+}
+
+func (contr *Controller) ConnectTelegram(c echo.Context) error {
+    email := c.Get("email").(string)
+    u, err := contr.userService.GetUserByEmail(email)
+    if err == sql.ErrNoRows {
+        return c.JSON(http.StatusNotFound, map[string]any{
+            "message": "User not found",
+            "errors": map[string]any{
+                "user": "not found",
+            },
+        })
+    }
+    if err != nil {
+        return err
+    }
+    // generate code with shortid
+    code, err := shortid.Generate()
+    if err != nil {
+        return err
+    }
+    // save code to redis
+    ctx := rediscl.RDB.Ctx
+    if err := rediscl.RDB.Client.Set(ctx, "telegram_codes:"+code, u.ID, 15*time.Minute).Err(); err != nil {
+        return err
+    }
+    // send link to user
+    link := contr.TgLink + "?start=" + code
+    return c.JSON(http.StatusOK, map[string]any{
+        "message": "Connect your telegram",
+        "link": link,
+    })         
 }

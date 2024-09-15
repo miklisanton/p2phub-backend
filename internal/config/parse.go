@@ -25,6 +25,7 @@ type Config struct {
     }
 	Telegram struct {
 		APIkey string `yaml:"api-key"`
+        InviteLink string `yaml:"bot-link"`
 	}
 	Exchange struct {
 		MaxRetries int `yaml:"max-retries"`
@@ -32,7 +33,7 @@ type Config struct {
 	}
     Website struct {
         Port string `yaml:"port"`
-        JWTSecret string
+        JWTSecret string `yaml:"jwt-secret"`
     }
 }
 

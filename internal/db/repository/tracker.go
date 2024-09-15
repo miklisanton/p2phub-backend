@@ -37,19 +37,23 @@ func (repo *TrackerRepository) Save(tracker *models.Tracker) error {
 	}
 
 	if tracker.ID == 0 {
-		query := `INSERT INTO trackers (user_id, exchange, currency, side, username, waiting_adv)
-			VALUES ($1, $2, $3, $4, $5, false)
+		query := `INSERT INTO trackers (user_id, exchange, currency, side, username, notify)
+			VALUES ($1, $2, $3, $4, $5, $6)
 			RETURNING id`
-		err := tx.QueryRow(query, tracker.UserID, tracker.Exchange, tracker.Currency, tracker.Side, tracker.Username).Scan(&tracker.ID)
+            err := tx.QueryRow(query, tracker.UserID, tracker.Exchange,
+                            tracker.Currency, tracker.Side, 
+                            tracker.Username,tracker.Notify).Scan(&tracker.ID)
 
 		if err != nil {
 			tx.Rollback()
 			return fmt.Errorf("error creating new tracker : %v", err)
 		}
 	} else {
-		query := `UPDATE trackers SET exchange = $1, currency = $2, side = $3, username = $4, waiting_adv = false
-			WHERE id = $5`
-		_, err = tx.Exec(query, tracker.Exchange, tracker.Currency, tracker.Side, tracker.Username, tracker.ID)
+		query := `UPDATE trackers SET exchange = $1, currency = $2, side = $3, username = $4, notify = $5
+			WHERE id = $6`
+		_, err = tx.Exec(query, tracker.Exchange, tracker.Currency,
+                        tracker.Side, tracker.Username, tracker.Notify,
+                        tracker.ID)
 		if err != nil {
 			tx.Rollback()
 			return err
@@ -108,12 +112,9 @@ func (repo *TrackerRepository) GetAllTrackers() ([]*models.UserTracker, error) {
 
 func (repo *TrackerRepository) GetTrackersByUserId(id int) ([]*models.UserTracker, error) {
 	var trackers []*models.UserTracker
-	query := `SELECT t.id as tracker_id, t.exchange, t.currency, t.side, t.username, t.waiting_adv, u.id as user_id, u.chat_id
+	query := `SELECT t.id as tracker_id, t.exchange, t.currency, t.side, t.username, t.notify, u.id as user_id, u.chat_id
 		FROM trackers t JOIN public.users u on t.user_id = u.id WHERE u.id = $1`
 	err := repo.db.Select(&trackers, query, id)
-    for _, tracker := range trackers {
-        fmt.Printf("Tracker: %v", tracker.ID)
-    }
 	if err != nil {
 		return nil, err
 	}

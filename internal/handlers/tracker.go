@@ -65,6 +65,7 @@ func (contr *Controller) CreateTracker(c echo.Context) error {
         Currency: trackerReq.Currency,
         Side: trackerReq.Side,
         Username: trackerReq.Username,
+        Notify: *trackerReq.Notify,
     }
 
     if err := contr.trackerService.ValidateTracker(tracker, false); err != nil {
@@ -183,8 +184,71 @@ func (contr *Controller) DeleteTracker(c echo.Context) error {
     })
 }
 
+func (contr *Controller) SetNotifyTracker(c echo.Context) error {
+    email := c.Get("email").(string)
+    u, err := contr.userService.GetUserByEmail(email)
+    if err == sql.ErrNoRows {
+        return c.JSON(http.StatusNotFound, map[string]any{
+            "message": "User not found",
+            "errors": map[string]any{
+                "user": "not found",
+            },
+        })
+    }
+    if err != nil {
+        return err
+    }
+
+    trackerID, err := strconv.Atoi(c.Param("id"))
+    if err != nil {
+        return c.JSON(http.StatusBadRequest, map[string]any{
+            "message": "Invalid tracker ID",
+            "errors": map[string]any{
+                "tracker": "invalid ID",
+            },
+        })
+    }
+    tracker, err := contr.trackerService.GetTrackerById(trackerID)
+    if err != nil {
+        return c.JSON(http.StatusNotFound, map[string]any{
+            "message": "Tracker not found",
+            "errors": map[string]any{
+                "tracker": "not found",
+            },
+        })
+    }
+    // Check if tracker created by user
+    if tracker.UserID != u.ID {
+        return c.JSON(http.StatusForbidden, map[string]any{
+            "message": "Forbidden",
+            "errors": map[string]any{
+                "tracker": "not found",
+            },
+        })
+    }
+
+    trackerReq := new(requests.TrackerRequest)
+    if err := c.Bind(trackerReq); err != nil {
+        return err
+    }
+
+    // Update tracker
+    if trackerReq.Notify != nil {
+        tracker.Notify = *trackerReq.Notify
+    }
+
+    err = contr.trackerService.CreateTracker(tracker)
+    if err != nil {
+        return err
+    }
+    return c.JSON(http.StatusCreated, map[string]any{
+        "message": "Tracker updated",
+        "trackers": tracker,
+    })
+}
 
 
+// Options related endpoints
 func (contr *Controller) GetPaymentMethods (c echo.Context) error {
     email := c.Get("email").(string)
     // Check query parameters

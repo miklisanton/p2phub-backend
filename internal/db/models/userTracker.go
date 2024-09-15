@@ -5,8 +5,7 @@ type UserTracker struct {
 	Exchange    string   `db:"exchange" json:"exchange"`
 	Currency    string   `db:"currency" json:"currency"`
 	Side        string   `db:"side" json:"side"`
-	Waiting     bool     `db:"waiting_adv" json:"waiting"`
-    Outbided bool        `db:"outbided" json:"outbided"`
+    Notify      bool     `db:"notify" json:"notify"`
 	Payment     []PaymentMethod `db:"-" json:"payment_methods"`
     UserID      int       `db:"user_id" json:"-"`
 	ChatID      *int64   `db:"chat_id" json:"tg_chat_id"`

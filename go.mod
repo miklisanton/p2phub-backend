@@ -32,6 +32,7 @@ require (
 	github.com/rs/zerolog v1.33.0 // indirect
 	github.com/sethvargo/go-retry v0.2.4 // indirect
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
+	github.com/teris-io/shortid v0.0.0-20220617161101-71ec9f2aa569 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect

@@ -7,8 +7,7 @@ CREATE TABLE trackers (
     currency varchar(3) NOT NULL,
     username varchar NOT NULL,
     side varchar(4) NOT NULL,
-    waiting_adv boolean DEFAULT false,
-    outbided boolean DEFAULT false,
+    notify boolean DEFAULT false,
     CONSTRAINT fk_user
         FOREIGN KEY (user_id)
         REFERENCES users(id)

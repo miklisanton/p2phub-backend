@@ -35,7 +35,8 @@ func main() {
                                                 "binance": binance,
                                                 "bybit": bybit,
                                             },
-                                            cfg.Website.JWTSecret)
+                                            cfg.Website.JWTSecret,
+                                            cfg.Telegram.InviteLink)
 
 
     utils.NewLogger()
@@ -43,7 +44,7 @@ func main() {
     e.Use(utils.LoggingMiddleware)
 
     publicGroup := e.Group("/api/v1/public")
-
+    // authentification routes
     publicGroup.POST("/login", controller.Login) 
     publicGroup.POST("/signup", controller.Signup)
 
@@ -52,12 +53,16 @@ func main() {
     config := JWTConfig.NewJWTConfig(cfg)
     privateGroup.Use(echojwt.WithConfig(config))
     privateGroup.Use(utils.AuthMiddleware)
-
+    // tracker routes
     privateGroup.GET("/trackers", controller.GetTrackers)
     privateGroup.POST("/trackers", controller.CreateTracker)
     privateGroup.DELETE("/trackers/:id", controller.DeleteTracker)
+    privateGroup.PATCH("/trackers/:id", controller.SetNotifyTracker)
+    // tracker options for forms
     privateGroup.GET("/trackers/options/methods", controller.GetPaymentMethods)
     privateGroup.GET("/trackers/options/currencies", controller.GetCurrencies)
+    // connect telegram route
+    privateGroup.POST("/telegram/connect", controller.ConnectTelegram)
     
 
     e.Logger.Fatal(e.Start(":1323"))

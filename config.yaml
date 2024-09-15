@@ -11,6 +11,7 @@ redis:
   db: 0
 telegram:
   api-key: ${BOT_TOKEN}
+  bot-link: t.me/p2pmonitor_bot
 exchange:
   max-retries: 20
   retry-delay: 30
