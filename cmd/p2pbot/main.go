@@ -2,11 +2,11 @@ package main
 
 import (
 	"log"
-    "p2pbot/internal/app"
+	"p2pbot/internal/app"
 	"p2pbot/internal/bot"
 	"p2pbot/internal/db/repository"
+	"p2pbot/internal/rediscl"
 	"p2pbot/internal/services"
-	"time"
 )
 
 // Delete keyboard message after send
@@ -25,6 +25,8 @@ func main() {
 	trackerService := services.NewTrackerService(trackerRepo)
 	userService := services.NewUserService(userRepo)
 
+    rediscl.InitRedisClient(cfg.Redis.Host, cfg.Redis.Port)
+
 	//Supported exchanges
 	binance := services.NewBinanceExchange(cfg)
 	bybit := services.NewBybitExcahnge(cfg)
@@ -36,15 +38,15 @@ func main() {
 		log.Fatal("Error starting bot: ", err)
 	}
 
-	go func() {
-		err = tgbot.MonitorAds(time.Minute * 1)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
-	go func() {
-		tgbot.NotifyUsers()
-	}()
+	//go func() {
+	//	err = tgbot.MonitorAds(time.Minute * 1)
+	//	if err != nil {
+	//		log.Fatal(err)
+	//	}
+	//}()
+	//go func() {
+	//	tgbot.NotifyUsers()
+	//}()
 	tgbot.Start()
 
 }

@@ -2,15 +2,16 @@ package bot
 
 import (
 	"fmt"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
 	"p2pbot/internal/config"
-	"p2pbot/internal/db/models"
-	"p2pbot/internal/fsm"
+	"p2pbot/internal/rediscl"
 	"p2pbot/internal/services"
 	"p2pbot/internal/utils"
+	"strconv"
 	"strings"
-	"time"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/redis/go-redis/v9"
 )
 
 type Bot struct {
@@ -45,8 +46,6 @@ func (bot *Bot) Start() {
 		log.Fatal(err)
 	}
 
-	sm := fsm.New()
-
 	for update := range updates {
 		if update.Message == nil {
 			continue
@@ -54,141 +53,70 @@ func (bot *Bot) Start() {
 		chatID := update.Message.Chat.ID
 
 		switch update.Message.Command() {
-		case "":
-			//handle user input
-			msg := update.Message.Text
-			bot.toDelete = append(bot.toDelete, update.Message.MessageID)
-			log.Println(msg)
-
-            // TODO
-			tracker := bot.trackerService.GetTrackerStaging(0)
-
-			var nextState fsm.State
-
-			currentState := sm.GetState(chatID)
-			switch currentState {
-			case fsm.Welcome:
-				id := bot.SendMessage(chatID, "/new to create new tracker")
-				bot.toDelete = append(bot.toDelete, id)
-			case fsm.AwaitingExchange:
-				if _, ok := bot.trackerService.Exchanges[msg]; ok {
-					nextState, err = sm.Transition(chatID, fsm.ExchangeFound, chatID, msg, tracker)
-					if err != nil {
-						log.Fatal(err)
-					}
-
-					id := bot.SendMessage(chatID, fmt.Sprintf("Provide currency symbol, <EUR> for example"))
-					bot.toDelete = append(bot.toDelete, id)
-				} else {
-					id := bot.SendMessage(chatID, fmt.Sprintf("Exhcange %s not supported", msg))
-					bot.toDelete = append(bot.toDelete, id)
-
-					nextState, err = sm.Transition(chatID, fsm.ExchangeNotFound)
-					if err != nil {
-						log.Fatal(err)
-					}
-				}
-			case fsm.AwaitingСurrency:
-				nextState, err = sm.Transition(chatID, fsm.CurrencyGiven, strings.ToUpper(msg), tracker)
-				if err != nil {
-					log.Fatal(err)
-				}
-
-				id := bot.SendMessage(chatID, fmt.Sprintf("Provide username on %s", tracker.Exchange))
-				bot.toDelete = append(bot.toDelete, id)
-			case fsm.AwaitingExchangeUsername:
-				nextState, err = sm.Transition(chatID, fsm.UsernameGiven)
-				if err != nil {
-					log.Fatal(err)
-				}
-
-				_, err = bot.userService.CreateUser(&models.User{
-					ChatID:      &chatID,
-				})
-				if err != nil {
-					log.Fatal(err)
-				}
-
-				id := bot.SendMessage(chatID, fmt.Sprintf("Provide side BUY/SELL"))
-				bot.toDelete = append(bot.toDelete, id)
-			case fsm.AwaitingSide:
-				tracker.Side = strings.ToUpper(msg)
-				for _, exchange := range bot.exchanges {
-					if strings.ToLower(exchange.GetName()) == tracker.Exchange {
-						user, err := bot.userService.GetUserByChatID(chatID)
-						if err != nil {
-							log.Fatal(err)
-						}
-
-						username, err := utils.GetField(user, exchange.GetName()+"Name")
-						if err != nil {
-							log.Fatalf("error getting exchange name: %s", err)
-						}
-
-                        if err := bot.trackerService.ValidateTracker(tracker, true); err != nil {
-                            log.Fatal("error while verifying tracker: ", err)
-                        }
-
-						ads, err := exchange.GetAdsByName(tracker.Currency, tracker.Side, username.(string))
-						if err != nil {
-							id := bot.SendMessage(chatID, err.Error())
-							bot.toDelete = append(bot.toDelete, id)
-
-							nextState, err = sm.Transition(chatID, fsm.AdvertisementNotFound)
-							if err != nil {
-								log.Fatal(err)
-							}
-
-							id = bot.SendMessage(chatID, "/new to create new tracker")
-							bot.toDelete = append(bot.toDelete, id)
-						} else {
-							log.Printf("Find %d ads", len(ads))
-							for _, adv := range ads {
-								tracker.Payment = adv.GetPaymentMethods()
-
-								err = bot.trackerService.CreateTracker(tracker)
-                                      
-								if err != nil {
-									log.Fatal(err)
-								}
-								tracker.ID = 0
-							}
-							nextState, err = sm.Transition(chatID, fsm.AdvertisementFound)
-							if err != nil {
-								log.Fatal(err)
-							}
-
-							if err := bot.DeleteMessages(chatID); err != nil {
-								log.Fatal(err)
-							}
-							bot.SendMessage(chatID, "Tracker created successfully")
-						}
-					}
-				}
-
-			default:
-				log.Fatalf("not implemented %d", currentState)
-			}
-
-			log.Println("next state:", nextState)
-		case "new":
-			if sm.GetState(chatID) == fsm.Welcome {
-				id := bot.SendMessage(chatID, "Choose exchange bybit/binance")
-				bot.toDelete = append(bot.toDelete, id)
-
-				s, err := sm.Transition(chatID, fsm.NewTracker)
-				if err != nil {
-					log.Fatal(err)
-				}
-				log.Println("next state:", s)
-			}
 		case "start":
-			bot.SendMessage(chatID, "/new to create new tracker")
+            err := bot.HandleStart(update.Message)
+            if err != nil {
+               utils.Logger.LogError().Fields(map[string]interface{}{
+                "error": err.Error(),
+               }).Msg("bot message")
+            }
 		default:
 			bot.SendMessage(chatID, "Unknown command")
 		}
 	}
 }
+
+func (bot *Bot) HandleStart(msg *tgbotapi.Message) error {
+   args := strings.Split(msg.CommandArguments(), " ")
+   // Send different start message if unique_code is provided
+   if len(args) == 1 && args[0] != "" {
+       // Handle telegram connect
+       // extract unique_code from /start command
+       code := args[0]
+       ctx := rediscl.RDB.Ctx
+       userID, err := rediscl.RDB.Client.Get(ctx, "telegram_codes:"+code).Result()
+       if userID == "" || err == redis.Nil {
+           bot.SendMessage(msg.Chat.ID, "Link doesn't exist or expired")
+           return nil
+       }
+       if err != nil {
+            return err
+        }
+        // Set chat_id for user
+        uid, err := strconv.Atoi(userID)
+        if err != nil {
+            return err
+        }
+        user, err := bot.userService.GetUserByID(uid)
+        if err != nil {
+            return err
+        }
+        user.ChatID = &msg.Chat.ID
+        if _, err := bot.userService.CreateUser(user); err != nil {
+            return err
+        }
+        // Delete unique_code from redis
+        if err := rediscl.RDB.Client.Del(ctx, "telegram_codes:"+code).Err(); err != nil {
+            return err
+        }
+        bot.SendMessage(msg.Chat.ID, "Successfully connected")
+        return nil
+   } else {
+       // TODO handle default /start command
+       bot.SendMessage(msg.Chat.ID, "TODO, /start command")
+       return nil
+   }
+}
+
+
+
+
+
+
+   // 2. get user_id from redis, telegram_codes:unique_code
+   // 3. if user_id exists, extract chat_id from message and set user.chat_id, otherwise send link expired message
+   // 4. delete unique_code from redis
+
 
 func (bot *Bot) SendMessage(chatID int64, text string) int {
 	msg := tgbotapi.NewMessage(chatID, text)
@@ -207,61 +135,61 @@ func (bot *Bot) SendMultiple(ids []int64, text string) {
 	}
 }
 
-func (bot *Bot) MonitorAds(refreshRate time.Duration) error {
-	ticker := time.NewTicker(refreshRate)
-	for range ticker.C {
-		trackers, err := bot.trackerService.GetAllTrackers()
-		if err != nil {
-			return fmt.Errorf("error getting trackers: %s", err)
-		}
-		for _, tracker := range trackers {
-			for _, exchange := range bot.exchanges {
-				if strings.ToLower(exchange.GetName()) != tracker.Exchange {
-					continue
-				}
-				// Retrieve username on exchange
-				username, err := utils.GetField(tracker, exchange.GetName()+"Name")
-				if err != nil {
-					return fmt.Errorf("error getting exchange name: %s", err)
-				}
-				// Skip, username not provided
-				if username == "" {
-					continue
-				}
-
-				exchangeBestAdv, err := exchange.GetBestAdv(tracker.Currency, tracker.Side, tracker.Payment)
-				if err != nil {
-                    log.Printf("Error getting best adv on %s : %s",exchange.GetName(), err)
-                    continue
-				}
-				log.Printf("Best advertisement on %s is %s ", exchange.GetName(), exchangeBestAdv.GetName())
-				// Send notification if best advertisement doesn't match with tracker username
-				if exchangeBestAdv.GetName() != username {
-					// Notify if user reacted on previous notification(updated his adv)
-					if !tracker.Waiting {
-						bot.NotificationCh <- utils.Notification{
-							ChatID:    *tracker.ChatID,
-							Data:      exchangeBestAdv,
-							Exchange:  tracker.Exchange,
-							Direction: tracker.Side,
-							Currency:  tracker.Currency,
-						}
-					}
-					// Set waiting_adv flag, until user puts his advertisement on top
-					if err := bot.trackerService.SetWaitingFlag(tracker.ID, true); err != nil {
-						return err
-					}
-				} else {
-					// User updated his adv, enable notifications
-					if err := bot.trackerService.SetWaitingFlag(tracker.ID, false); err != nil {
-						return err
-					}
-				}
-			}
-		}
-	}
-	return nil
-}
+//func (bot *Bot) MonitorAds(refreshRate time.Duration) error {
+//	ticker := time.NewTicker(refreshRate)
+//	for range ticker.C {
+//		trackers, err := bot.trackerService.GetAllTrackers()
+//		if err != nil {
+//			return fmt.Errorf("error getting trackers: %s", err)
+//		}
+//		for _, tracker := range trackers {
+//			for _, exchange := range bot.exchanges {
+//				if strings.ToLower(exchange.GetName()) != tracker.Exchange {
+//					continue
+//				}
+//				// Retrieve username on exchange
+//				username, err := utils.GetField(tracker, exchange.GetName()+"Name")
+//				if err != nil {
+//					return fmt.Errorf("error getting exchange name: %s", err)
+//				}
+//				// Skip, username not provided
+//				if username == "" {
+//					continue
+//				}
+//
+//				exchangeBestAdv, err := exchange.GetBestAdv(tracker.Currency, tracker.Side, tracker.Payment)
+//				if err != nil {
+//                    log.Printf("Error getting best adv on %s : %s",exchange.GetName(), err)
+//                    continue
+//				}
+//				log.Printf("Best advertisement on %s is %s ", exchange.GetName(), exchangeBestAdv.GetName())
+//				// Send notification if best advertisement doesn't match with tracker username
+//				if exchangeBestAdv.GetName() != username {
+//					// Notify if user reacted on previous notification(updated his adv)
+//					if !tracker.Waiting {
+//						bot.NotificationCh <- utils.Notification{
+//							ChatID:    *tracker.ChatID,
+//							Data:      exchangeBestAdv,
+//							Exchange:  tracker.Exchange,
+//							Direction: tracker.Side,
+//							Currency:  tracker.Currency,
+//						}
+//					}
+//					// Set waiting_adv flag, until user puts his advertisement on top
+//					if err := bot.trackerService.SetWaitingFlag(tracker.ID, true); err != nil {
+//						return err
+//					}
+//				} else {
+//					// User updated his adv, enable notifications
+//					if err := bot.trackerService.SetWaitingFlag(tracker.ID, false); err != nil {
+//						return err
+//					}
+//				}
+//			}
+//		}
+//	}
+//	return nil
+//}
 
 func (bot *Bot) NotifyUsers() {
 	for notification := range bot.NotificationCh {
