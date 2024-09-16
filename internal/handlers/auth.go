@@ -3,7 +3,6 @@ package handlers
 import (
 	"database/sql"
     "p2pbot/internal/rediscl"
-	"log"
 	"net/http"
 	"p2pbot/internal/JWTConfig"
 	"p2pbot/internal/db/models"
@@ -81,15 +80,6 @@ func (contr *Controller) Login(c echo.Context) error {
         return err
     }
 
-    v := validator.New()
-    err := v.Struct(u)
-    if err != nil {
-        for _, e := range err.(validator.ValidationErrors) {
-            log.Println("Validation error:", e.Field(), e.Tag(), e.Param())
-        }    
-        return c.JSON(http.StatusBadRequest, err.Error())
-    }
-    
     user, err := contr.userService.GetUserByEmail(u.Email)
 
     if err != nil {
@@ -123,9 +113,16 @@ func (contr *Controller) Login(c echo.Context) error {
         return err
     }
 
+    c.SetCookie(&http.Cookie{
+        HttpOnly: true,
+        Value: tokenString,
+        Expires: time.Now().Add(time.Hour * 24),
+        SameSite: http.SameSiteStrictMode,
+        Name: "token",
+    })
+
     return c.JSON(http.StatusOK, map[string]any{
         "message": "Login successful",
-        "token": tokenString,
     })
 }
 

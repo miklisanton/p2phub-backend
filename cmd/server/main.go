@@ -6,6 +6,7 @@ import (
     "p2pbot/internal/app"
     "p2pbot/internal/handlers"
     echojwt "github.com/labstack/echo-jwt/v4"
+    echomiddleware "github.com/labstack/echo/v4/middleware"
     "p2pbot/internal/JWTConfig"
     "p2pbot/internal/db/repository"
     "p2pbot/internal/services"
@@ -43,6 +44,15 @@ func main() {
     e := echo.New()
     e.Use(utils.LoggingMiddleware)
 
+    e.Use(echomiddleware.CORSWithConfig(echomiddleware.CORSConfig{
+        AllowOrigins: []string{"http://localhost:5173"},
+        AllowHeaders: []string{
+            echo.HeaderOrigin, 
+            echo.HeaderContentType,
+            echo.HeaderAccept,
+            "Authorization",
+        },
+    }))
     publicGroup := e.Group("/api/v1/public")
     // authentification routes
     publicGroup.POST("/login", controller.Login) 
@@ -65,5 +75,5 @@ func main() {
     privateGroup.POST("/telegram/connect", controller.ConnectTelegram)
     
 
-    e.Logger.Fatal(e.Start(":1323"))
+    e.Logger.Fatal(e.Start(":"+cfg.Website.Port))
 }
