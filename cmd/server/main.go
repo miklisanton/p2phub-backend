@@ -50,13 +50,21 @@ func main() {
             echo.HeaderOrigin, 
             echo.HeaderContentType,
             echo.HeaderAccept,
+            echo.HeaderXCSRFToken,
             "Authorization",
         },
+        AllowCredentials: true,
     }))
+    e.Use(echomiddleware.CSRFWithConfig(echomiddleware.CSRFConfig{
+        TokenLookup: "header:X-CSRF-Token",
+    }))
+
     publicGroup := e.Group("/api/v1/public")
     // authentification routes
     publicGroup.POST("/login", controller.Login) 
     publicGroup.POST("/signup", controller.Signup)
+    //CSRF token
+    publicGroup.GET("/csrf", controller.GetCSRFToken)
 
     privateGroup := e.Group("/api/v1/private")
 

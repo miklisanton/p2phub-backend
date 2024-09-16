@@ -157,3 +157,10 @@ func (contr *Controller) ConnectTelegram(c echo.Context) error {
         "link": link,
     })         
 }
+
+func (cont *Controller) GetCSRFToken(c echo.Context) error {
+    csrf := c.Get("csrf").(string)
+    return c.JSON(http.StatusOK, map[string]any{
+        "csrf": csrf,
+    })
+}
