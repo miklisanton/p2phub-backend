@@ -56,7 +56,7 @@ func main() {
         AllowCredentials: true,
     }))
     e.Use(echomiddleware.CSRFWithConfig(echomiddleware.CSRFConfig{
-        TokenLookup: "header:X-CSRF-Token",
+        TokenLookup: "cookie:_csrf",
     }))
 
     publicGroup := e.Group("/api/v1/public")
@@ -79,6 +79,9 @@ func main() {
     // tracker options for forms
     privateGroup.GET("/trackers/options/methods", controller.GetPaymentMethods)
     privateGroup.GET("/trackers/options/currencies", controller.GetCurrencies)
+    // User routes
+    privateGroup.POST("/logout", controller.Logout) 
+    privateGroup.GET("/profile", controller.GetProfile) 
     // connect telegram route
     privateGroup.POST("/telegram/connect", controller.ConnectTelegram)
     

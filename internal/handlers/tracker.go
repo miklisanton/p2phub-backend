@@ -12,6 +12,10 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// GetTrackers gets all trackers for a user
+// if page is not provided, it defaults to 1
+// returns 10 trackers per page
+
 func (contr *Controller) GetTrackers(c echo.Context) error {
     email := c.Get("email").(string)
     u, err := contr.userService.GetUserByEmail(email)
@@ -26,14 +30,56 @@ func (contr *Controller) GetTrackers(c echo.Context) error {
     if err != nil {
         return err
     }
+    // Get page
+    page := c.QueryParam("page")
+    if page == "" {
+        page = "1"
+    }
+    p, err := strconv.Atoi(page)
+    if err != nil {
+        return err
+    }
+    if p < 1 {
+        p = 1
+    }
+    // Get limit
+    limit := c.QueryParam("limit")
+    if limit == "" {
+        limit = "10"
+    }
+    l, err := strconv.Atoi(limit)
+    if err != nil {
+        return err
+    }
+    if l < 1 {
+        l = 10
+    }
+    
+    utils.Logger.Info().Fields(map[string]interface{}{
+        "email": email,
+        "page": p,
+    }).Msg("Trackers requested")
 
     trackers, err := contr.trackerService.GetTrackersByUserId(u.ID)
     if err != nil {
         return err
     }
+
+    if (p - 1) * l >= len(trackers) {
+        return c.JSON(http.StatusNotFound, map[string]any{
+            "message": "No trackers found",
+            "errors": map[string]any{
+                "trackers": "not found",
+            },
+        })
+    }
+
+    hasMore := p * l < len(trackers)
+
     return c.JSON(http.StatusOK, map[string]any{
         "message": fmt.Sprintf("Trackers for user %s", email),
-        "trackers": trackers,  
+        "trackers": trackers[(p - 1 ) * l : min(p * l, len(trackers))],  
+        "hasMore": hasMore,
     })
 }
 
@@ -59,6 +105,10 @@ func (contr *Controller) CreateTracker(c echo.Context) error {
     }
 
     // Create tracker entity and validate its fields
+    if trackerReq.Notify == nil {
+        trackerReq.Notify = new(bool)
+        *trackerReq.Notify = false
+    }
     tracker := &models.Tracker{
         UserID: u.ID,
         Exchange: trackerReq.Exchange,

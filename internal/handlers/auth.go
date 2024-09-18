@@ -117,12 +117,50 @@ func (contr *Controller) Login(c echo.Context) error {
         HttpOnly: true,
         Value: tokenString,
         Expires: time.Now().Add(time.Hour * 24),
-        SameSite: http.SameSiteStrictMode,
+        SameSite: http.SameSiteLaxMode,
         Name: "token",
+        Path: "/",
     })
 
     return c.JSON(http.StatusOK, map[string]any{
         "message": "Login successful",
+    })
+}
+
+func (contr *Controller) Logout(c echo.Context) error {
+    c.SetCookie(&http.Cookie{
+        HttpOnly: true,
+        Value: "",
+        Expires: time.Now(),
+        SameSite: http.SameSiteLaxMode,
+        Path: "/",
+        Name: "token",
+    })
+    return c.JSON(http.StatusOK, map[string]any{
+        "message": "Logout successful",
+    })
+}
+
+func (contr *Controller) GetProfile(c echo.Context) error {
+    email := c.Get("email").(string)
+    u, err := contr.userService.GetUserByEmail(email)
+    if err == sql.ErrNoRows {
+        return c.JSON(http.StatusNotFound, map[string]any{
+            "message": "User not found",
+            "errors": map[string]any{
+                "user": "not found",
+            },
+        })
+    }
+    if err != nil {
+        return err
+    }
+    return c.JSON(http.StatusOK, map[string]any{
+        "message": "User found",
+        "user": map[string]any{
+            "email": u.Email,
+            "telegram": u.ChatID,
+        },
     })
 }
 

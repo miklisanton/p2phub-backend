@@ -18,5 +18,6 @@ func NewJWTConfig(cfg *config.Config) echojwt.Config {
 			return new(JWTCustomClaims)
 		},
 		SigningKey: []byte(cfg.Website.JWTSecret),
+        TokenLookup: "cookie:token",
 	}
 }
