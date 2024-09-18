@@ -367,13 +367,22 @@ func (ex BinanceExchange) FetchPaymentMethods(currencies []string) (map[string][
 func (ex BinanceExchange) GetCachedPaymentMethods(curr string) ([]PaymentMethod, error) {
     ctx := rediscl.RDB.Ctx 
     // Retrieve from cache
-    currenciesJSON, err := rediscl.RDB.Client.JSONGet(ctx, "binance:currencies",
-                                            fmt.Sprintf("$.%s", curr)).Result()
+    var err error
+    var currenciesJSON string
 
-    log.Println(currenciesJSON)
+    if curr == "" {
+        // Retrieve all
+        currenciesJSON, err = rediscl.RDB.Client.JSONGet(ctx, "binance:currencies", "$").Result()
+    } else {
+        // Retrieve specific currency
+        currenciesJSON, err = rediscl.RDB.Client.JSONGet(ctx, "binance:currencies",
+                                            fmt.Sprintf("$.%s", curr)).Result()
+    }
+
     if currenciesJSON == "[]" {
         return nil, fmt.Errorf("currency not found")
     }
+
     if err == redis.Nil || currenciesJSON == "" {
         // Cache miss
         currencies, err := ex.FetchCurrencies()
@@ -457,8 +466,8 @@ func (i DataItem) GetPaymentMethods() []string {
 
 func (i DataItem) String() string {
     minAmount, maxAmount, quantity := i.GetQuantity()
-    return fmt.Sprintf(`binance|Name: %s, Price: %s, Quantity: %s,
-                        MinAmount: %s, MaxAmount: %s, Payments: %v;`,
+    return fmt.Sprintf(`binance|Name: %s, Price: %.2f, Quantity: %.2f,
+                        MinAmount: %.2f, MaxAmount: %.2f, Payments: %v;`,
                         i.GetName(), i.GetPrice(), quantity,
                         minAmount, maxAmount, i.GetPaymentMethods())
 

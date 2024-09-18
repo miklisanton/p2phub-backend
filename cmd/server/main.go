@@ -79,6 +79,7 @@ func main() {
     // tracker options for forms
     privateGroup.GET("/trackers/options/methods", controller.GetPaymentMethods)
     privateGroup.GET("/trackers/options/currencies", controller.GetCurrencies)
+    privateGroup.GET("/trackers/options/exchanges", controller.GetExchanges)
     // User routes
     privateGroup.POST("/logout", controller.Logout) 
     privateGroup.GET("/profile", controller.GetProfile) 

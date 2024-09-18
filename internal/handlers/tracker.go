@@ -8,7 +8,7 @@ import (
 	"p2pbot/internal/requests"
 	"p2pbot/internal/utils"
 	"strconv"
-
+    "slices"
 	"github.com/labstack/echo/v4"
 )
 
@@ -389,6 +389,8 @@ func (contr *Controller) GetCurrencies(c echo.Context) error {
     if err != nil {
         return err
     }
+    // Sort alphabetically
+    slices.Sort(out)
 
     utils.Logger.LogInfo().Fields(map[string]interface{}{
         "email": email,
@@ -399,5 +401,23 @@ func (contr *Controller) GetCurrencies(c echo.Context) error {
     return c.JSON(http.StatusOK, map[string]any{
         "message": "Currencies",
         "options": out,
+    })
+}
+
+func (cont *Controller) GetExchanges(c echo.Context) error {
+    email := c.Get("email").(string)
+    out := make([]string, 0)
+    for k := range cont.exchanges {
+        out = append(out, k)
+    }
+
+    utils.Logger.LogInfo().Fields(map[string]interface{}{
+        "email": email,
+        "exchanges": out,
+    }).Msg("Exchanges requested")
+
+    return c.JSON(http.StatusOK, map[string]any{
+        "message": "Exchanges",
+        "exchanges": out,
     })
 }
