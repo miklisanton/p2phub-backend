@@ -65,6 +65,14 @@ func (contr *Controller) GetTrackers(c echo.Context) error {
         return err
     }
 
+    if len(trackers) == 0 {
+        return c.JSON(http.StatusOK, map[string]any{
+            "message": "Trackers",
+            "trackers": make([]models.Tracker, 0),
+            "hasMore": false,
+        })
+    }
+
     if (p - 1) * l >= len(trackers) {
         return c.JSON(http.StatusNotFound, map[string]any{
             "message": "No trackers found",
@@ -116,6 +124,13 @@ func (contr *Controller) CreateTracker(c echo.Context) error {
         Side: trackerReq.Side,
         Username: trackerReq.Username,
         Notify: *trackerReq.Notify,
+        Payment: make([]models.PaymentMethod, 0),
+    }
+    // Recieve payment methods from request and add them to tracker
+    for _, p := range trackerReq.Payment {
+        tracker.Payment = append(tracker.Payment, models.PaymentMethod{
+            Id: p,
+        })
     }
 
     if err := contr.trackerService.ValidateTracker(tracker, false); err != nil {
@@ -139,7 +154,8 @@ func (contr *Controller) CreateTracker(c echo.Context) error {
     
     ads, err := exchange.GetAdsByName(tracker.Currency,
                                         tracker.Side,
-                                        tracker.Username)
+                                        tracker.Username,
+                                        trackerReq.Payment)
     if err != nil {
         return c.JSON(http.StatusNotFound, map[string]any{
             "message": "error getting ads",
@@ -154,24 +170,44 @@ func (contr *Controller) CreateTracker(c echo.Context) error {
         exchange.GetName(): ads,
     }).Msg("Ads found")
 
+    // needed for retreiving payment methods names from ids
+    pMethods, err := exchange.GetCachedPaymentMethods(tracker.Currency)
+    if err != nil {
+        return err
+    }
     createdTrackers := make([]models.Tracker, 0)
     for _, adv := range ads {
         // Recieve payment methods from ad
         pmStrings := adv.GetPaymentMethods() 
         pms := make([]models.PaymentMethod, 0)
         for _, p := range pmStrings {
+            // Get name from id and add to tracker
+            name, err := utils.GetPMethodName(pMethods, p)
+            if err != nil {
+                return c.JSON(http.StatusBadRequest, map[string]any{
+                    "message": "payment method not found",
+                    "errors": map[string]any{
+                        "payment_method": fmt.Sprintf("%s not found", p),
+                    },
+                })
+            }
             pms = append(pms, models.PaymentMethod{
-                Name: p,
+                Id: p,
+                Name: name,
             })
         }
-
         tracker.Payment = pms
-
-        err = contr.trackerService.CreateTracker(tracker)
-        createdTrackers = append(createdTrackers, *tracker)
-        if err != nil {
+        // Add to DB
+        if err = contr.trackerService.CreateTracker(tracker); err != nil {
             return err
         }
+        // Add to response
+        createdTrackers = append(createdTrackers, *tracker)
+        // Log
+        utils.Logger.Debug().Fields(map[string]interface{}{
+            "tracker": tracker,
+        }).Msg("Tracker created")
+        // Reset tracker ID
         tracker.ID = 0
     }
 

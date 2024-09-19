@@ -154,7 +154,7 @@ func (i Item) GetName() string {
 	return i.NickName
 }
 
-func (ex BybitExchange) requestData(page int, currency, side string) (*BybitAdsResponse, error) {
+func (ex BybitExchange) requestData(page int, currency, side string, pMethods []string) (*BybitAdsResponse, error) {
 	if side == "SELL" {
 		side = "1"
 	} else if side == "BUY" {
@@ -167,7 +167,7 @@ func (ex BybitExchange) requestData(page int, currency, side string) (*BybitAdsR
 		TokenID:    "USDT",
 		CurrencyID: currency,
 		Side:       side,
-		Payment:    nil,
+		Payment:    pMethods,
 		Page:       fmt.Sprintf("%d", page),
 	}
 
@@ -219,11 +219,11 @@ func (ex BybitExchange) requestData(page int, currency, side string) (*BybitAdsR
 	return &bybitResponse, nil
 }
 
-func (ex BybitExchange) GetAdsByName(currency, side, username string) ([]P2PItemI, error) {
+func (ex BybitExchange) GetAdsByName(currency, side, username string, pMethods []string) ([]P2PItemI, error) {
 	out := make([]P2PItemI, 0)
 	i := 1
 	for {
-		resp, err := ex.requestData(i, currency, side)
+		resp, err := ex.requestData(i, currency, side, pMethods)
 		if err != nil {
 			return nil, fmt.Errorf("could not find advertisement with username %s", username)
 		}

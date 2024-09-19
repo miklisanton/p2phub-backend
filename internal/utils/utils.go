@@ -62,3 +62,12 @@ func Contains(s []string, e string) bool {
     }
     return false
 }
+
+func GetPMethodName(pMethods []services.PaymentMethod, id string) (string, error) {
+    for _, pMethod := range pMethods {
+        if pMethod.Id == id {
+            return pMethod.Name, nil
+        }
+    }
+    return "", fmt.Errorf("payment method not found")
+}

@@ -68,11 +68,11 @@ func (repo *TrackerRepository) Save(tracker *models.Tracker) error {
 	}
 
 	// Insert new payment methods
-	query := `INSERT INTO methods (tracker_id, payment_method)
-				VALUES ($1, $2)
+	query := `INSERT INTO methods (tracker_id, payment_method, payment_name)
+				VALUES ($1, $2, $3)
 				ON CONFLICT DO NOTHING`
 	for _, method := range tracker.Payment {
-		_, err = tx.Exec(query, tracker.ID, method.Name)
+		_, err = tx.Exec(query, tracker.ID, method.Id, method.Name)
 		if err != nil {
 			tx.Rollback()
 			return err
@@ -80,6 +80,26 @@ func (repo *TrackerRepository) Save(tracker *models.Tracker) error {
 	}
 
 	return tx.Commit()
+}
+
+func (repo *TrackerRepository) GetMethodsForTracker(trackerId int64) ([]models.PaymentMethod, error) {
+    var out []models.PaymentMethod
+
+    rows, err := repo.db.Query("SELECT payment_method, payment_name, outbidded, notified FROM methods WHERE tracker_id = $1", trackerId)
+    if err != nil {
+        return nil, fmt.Errorf("error getting payment methods: %s", err)
+    }
+
+    for rows.Next() {
+        var paymentMethod models.PaymentMethod
+        err = rows.Scan(&paymentMethod.Id, &paymentMethod.Name, &paymentMethod.Outbided, &paymentMethod.Notified)
+        if err != nil {
+            return nil, fmt.Errorf("error getting payment methods: %s", err)
+        }
+
+        out = append(out, paymentMethod)
+    }
+    return out, nil
 }
 
 func (repo *TrackerRepository) GetAllTrackers() ([]*models.UserTracker, error) {
@@ -90,23 +110,13 @@ func (repo *TrackerRepository) GetAllTrackers() ([]*models.UserTracker, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	for _, tracker := range trackers {
-		rows, err := repo.db.Query("SELECT payment_method, outbidded, notified FROM methods WHERE tracker_id = $1", tracker.ID)
-		if err != nil {
-			return nil, fmt.Errorf("error getting payment methods: %s", err)
-		}
-
-		for rows.Next() {
-			var paymentMethod models.PaymentMethod
-			err = rows.Scan(&paymentMethod.Name, &paymentMethod.Outbided, &paymentMethod.Notified)
-			if err != nil {
-				return nil, fmt.Errorf("error getting payment methods: %s", err)
-			}
-
-			tracker.Payment = append(tracker.Payment, paymentMethod)
-		}
-	}
+    //Insert payment methods into trackers
+    for _, tracker := range trackers {
+        tracker.Payment, err = repo.GetMethodsForTracker(tracker.ID)
+        if err != nil {
+            return nil, err
+        }
+    }
 	return trackers, nil
 }
 
@@ -118,23 +128,13 @@ func (repo *TrackerRepository) GetTrackersByUserId(id int) ([]*models.UserTracke
 	if err != nil {
 		return nil, err
 	}
-
-	for _, tracker := range trackers {
-		rows, err := repo.db.Query("SELECT payment_method, outbidded, notified FROM methods WHERE tracker_id = $1", tracker.ID)
-		if err != nil {
-			return nil, fmt.Errorf("error getting payment methods: %s", err)
-		}
-
-		for rows.Next() {
-			var paymentMethod models.PaymentMethod
-			err = rows.Scan(&paymentMethod.Name, &paymentMethod.Outbided, &paymentMethod.Notified)
-			if err != nil {
-				return nil, fmt.Errorf("error getting payment methods: %s", err)
-			}
-
-			tracker.Payment = append(tracker.Payment, paymentMethod)
-		}
-	}
+    //Insert payment methods into trackers
+    for _, tracker := range trackers {
+        tracker.Payment, err = repo.GetMethodsForTracker(tracker.ID)
+        if err != nil {
+            return nil, err
+        }
+    }
 	return trackers, nil
 }
 
@@ -153,20 +153,11 @@ func (repo *TrackerRepository) GetTrackerById(id int) (*models.Tracker, error) {
         return nil, fmt.Errorf("tracker not found")
     }
     // Get payment methods
-    rows, err := repo.db.Query("SELECT payment_method, outbidded, notified FROM methods WHERE tracker_id = $1", tracker.ID)
+    tracker.Payment, err = repo.GetMethodsForTracker(tracker.ID)
     if err != nil {
-        return nil, fmt.Errorf("error getting payment methods: %s", err)
+        return nil, err
     }
 
-    for rows.Next() {
-        var paymentMethod models.PaymentMethod
-        err = rows.Scan(&paymentMethod.Name, &paymentMethod.Outbided, &paymentMethod.Notified)
-        if err != nil {
-            return nil, fmt.Errorf("error getting payment methods: %s", err)
-        }
-
-        tracker.Payment = append(tracker.Payment, paymentMethod)
-    }
 	return tracker, nil
 }
 

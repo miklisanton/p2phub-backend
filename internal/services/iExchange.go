@@ -4,7 +4,7 @@ package services
 type ExchangeI interface {
 	GetBestAdv(currency, side string, paymentMethods []string) (P2PItemI, error)
 	GetName() string
-	GetAdsByName(currency, side, username string) ([]P2PItemI, error)
+	GetAdsByName(currency, side, username string, pMethods []string) ([]P2PItemI, error)
     GetCachedPaymentMethods(curr string) ([]PaymentMethod, error)
     GetCachedCurrencies() ([]string, error)
 }
@@ -23,3 +23,4 @@ type PaymentMethod struct {
     Id string `json:"id"`
     Name       string `json:"name"`
 }
+

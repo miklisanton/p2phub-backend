@@ -181,7 +181,7 @@ func (i DataItem) GetQuantity() (quantity, minAmount, maxAmount float64) {
 	return
 }
 
-func (ex BinanceExchange) RequestData(page int, currency, side string) (*BinanceAdsResponse, error) {
+func (ex BinanceExchange) RequestData(page int, currency, side string, pMethods []string) (*BinanceAdsResponse, error) {
 	if side == "BUY" {
 		side = "SELL"
 	} else if side == "SELL" {
@@ -203,7 +203,7 @@ func (ex BinanceExchange) RequestData(page int, currency, side string) (*Binance
 		Periods:                   []string{},
 		AdditionalKycVerifyFilter: 0,
 		PublisherType:             nil,
-		PayTypes:                  make([]string, 0),
+		PayTypes:                  pMethods,
 		Classifies:                []string{"mass", "profession"},
 	}
 
@@ -254,11 +254,11 @@ func (ex BinanceExchange) RequestData(page int, currency, side string) (*Binance
 
 	return &binanceResponse, nil
 }
-func (ex BinanceExchange) GetAdsByName(currency, side, username string) ([]P2PItemI, error) {
+func (ex BinanceExchange) GetAdsByName(currency, side, username string, pMethods []string) ([]P2PItemI, error) {
 	out := make([]P2PItemI, 0)
 	i := 1
 	for {
-		response, err := ex.RequestData(i, currency, side)
+		response, err := ex.RequestData(i, currency, side, pMethods)
 		if err != nil {
 
 			return nil, fmt.Errorf("could not find advertisement with username %s", username)
