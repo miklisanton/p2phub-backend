@@ -9,12 +9,15 @@ import (
 	"p2pbot/internal/services"
     "p2pbot/internal/rabbitmq"
     "p2pbot/internal/utils"
+    "time"
 )
 
 // Delete keyboard message after send
 func main() {
     utils.NewLogger()
 
+    // wait until all services are up
+    time.Sleep(10 * time.Second)
     DB, cfg, err := app.Init()
     if err != nil {
         panic(err)
@@ -34,14 +37,13 @@ func main() {
 	//Supported exchanges
 	binance := services.NewBinanceExchange(cfg)
 	bybit := services.NewBybitExcahnge(cfg)
-
 	exs := []services.ExchangeI{binance, bybit}
 
 	tgbot, err := bot.NewBot(cfg, userService, trackerService, exs)
 	if err != nil {
 		log.Fatal("Error starting bot: ", err)
 	}
-
+    // Rabbitmq setup
     rabbit, err := rabbitmq.NewRabbitMQ(cfg)
     if err != nil {
         log.Fatal("Error starting rabbitmq: ", err)
@@ -55,17 +57,6 @@ func main() {
     }
     rabbit.StartConsuming(queueName, tgbot.HandleNotification)
 
-
-
-	//go func() {
-	//	err = tgbot.MonitorAds(time.Minute * 1)
-	//	if err != nil {
-	//		log.Fatal(err)
-	//	}
-	//}()
-	//go func() {
-	//	tgbot.NotifyUsers()
-	//}()
 	tgbot.Start()
 
 }

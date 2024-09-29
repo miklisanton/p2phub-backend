@@ -13,6 +13,8 @@ import (
 )
 
 func main() {
+    // wait until all services are up
+    time.Sleep(10 * time.Second)
     DB, cfg, err := app.Init()
     fmt.Println("DB: ", DB)
     if err != nil {

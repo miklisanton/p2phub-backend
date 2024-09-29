@@ -11,10 +11,13 @@ import (
     "p2pbot/internal/db/repository"
     "p2pbot/internal/services"
     "p2pbot/internal/utils"
+    "time"
 )
 
 
 func main() {
+    // wait until all services are up
+    time.Sleep(10 * time.Second)
     DB, cfg, err := app.Init()
     if err != nil {
         panic(err)

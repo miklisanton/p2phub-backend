@@ -22,10 +22,10 @@ func (bot *Bot) HandleNotification(msg amqp.Delivery) {
 
         template := `Your %s %s advertisement on %s was outbided by %s.
 Payment methods: %s. 
-Quantity: %.2fUSDT | Minimal amount: %.1f | Maximum amount: %.1f.
+Quantity: %.2fUSDT | Minimal amount: %.1f%s | Maximum amount: %.1f%s.
 Price: %.2f%s`
         message := fmt.Sprintf(template, n.Currency, n.Side, n.Exchange,
-                            name, pms, q, minA, maxA, price, n.Currency)
+                            name, pms, q, minA, n.Currency, maxA, n.Currency, price, n.Currency)
         bot.SendMessage(n.ChatID, message) 
     } else {
         utils.Logger.LogInfo().Msg(string(msg.Body))

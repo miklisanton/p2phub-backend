@@ -1,18 +1,47 @@
-version: '3'
 services:
-  app:
+  tg-bot:
     build:
-      context: ./
+      context: ./cmd/p2pbot
     volumes:
       - ./.env:/app/.env
+      - ./config.yaml:/app/config.yaml
+      - ./internal/db/migrations:/app/internal/db/migrations
     depends_on:
       - db
-    environment:
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USER: antonmiklis
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: p2p_bot
+      - rabbitmq
+      - cache
+    networks:
+      - app-network
+
+  web-server:
+    build:
+      context: ./cmd/server
+    ports:
+      - "1323:1323"
+    volumes:
+      - ./.env:/app/.env
+      - ./config.yaml:/app/config.yaml
+      - ./internal/db/migrations:/app/internal/db/migrations
+    depends_on:
+      - db
+      - rabbitmq
+      - cache
+    networks:
+      - app-network
+
+  observer:
+    build:
+      context: ./cmd/observer
+    volumes:
+      - ./.env:/app/.env
+      - ./config.yaml:/app/config.yaml
+      - ./internal/db/migrations:/app/internal/db/migrations
+    depends_on:
+      - db
+      - rabbitmq
+      - cache
+    networks:
+      - app-network
 
   db:
     image: postgres:15
@@ -24,7 +53,26 @@ services:
       - db_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    networks:
+      - app-network
+  cache:
+    image: redis/redis-stack
+    ports:
+      - "6379:6379"
+      - "8001:8001"
+    networks:
+      - app-network
+  rabbitmq:
+    image: rabbitmq:management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - app-network
 
 volumes:
   db_data:
 
+networks:
+  app-network:
+    driver: bridge
