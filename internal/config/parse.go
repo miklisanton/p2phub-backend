@@ -23,6 +23,9 @@ type Config struct {
         Host string `yaml:"host"`
         Port string `yaml:"port"`
     }
+    RabbitMQ struct {
+        URL string `yaml:"url"`
+    }
 	Telegram struct {
 		APIkey string `yaml:"api-key"`
         InviteLink string `yaml:"bot-link"`

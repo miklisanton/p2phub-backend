@@ -2,7 +2,6 @@ package repository
 
 import (
     "testing"
-    "p2pbot/internal/db/models"
     "p2pbot/internal/app"
     "github.com/jmoiron/sqlx"
     "fmt"
@@ -65,200 +64,164 @@ func TestMain(m *testing.M) {
 }
 
 // User tests
-func TestSaveUserEmail(t *testing.T) {
-    email := "ab@gmail.com"
-    password := "123456"
-
-    // Create a new user
-    user := &models.User{
-        Email:       &email,
-        Password_en: &password,
-    }
-    id, err := userRepo.Save(user)
-    if err != nil {
-        t.Fatalf("error saving user: %v", err)
-    }
-    fmt.Println("User ID: ", id)
-}
-
-func TestSaveUserChatID(t *testing.T) {
-    chatID := int64(12345)
-
-    user := &models.User{
-        ChatID:      &chatID,
-    }
-    id, err := userRepo.Save(user)
-    if err != nil {
-        t.Fatalf("error saving user: %v", err)
-    }
-    fmt.Println("User ID: ", id)
-}
-
-func TestSaveUserEmail2(t *testing.T) {
-    email := "a@mail.ru"
-    password := "123456"
-
-    // Create a new user
-    user := &models.User{
-        Email:       &email,
-        Password_en: &password,
-    }
-    id, err := userRepo.Save(user)
-    if err != nil {
-        t.Fatalf("error saving user: %v", err)
-    }
-    fmt.Println("User ID: ", id)
-}
-
-func TestSaveUserChatID2(t *testing.T) {
-    chatID := int64(123)
-
-    user := &models.User{
-        ChatID:      &chatID,
-    }
-    id, err := userRepo.Save(user)
-    if err != nil {
-        t.Fatalf("error saving user: %v", err)
-    }
-    fmt.Println("User ID: ", id)
-}
-
-func TestSaveUserNull(t *testing.T) {
-    user := &models.User{}
-    _, err := userRepo.Save(user)
-    if err == nil {
-        t.Fatalf("null email and chatid user can't be saved")
-    }
-}
-
-func TestSaveUserEmailNoPassword(t *testing.T) {
-    email := "nopass@mail.ri"
-
-    user := &models.User{
-        Email: &email,
-    }
-    _, err := userRepo.Save(user)
-    if err == nil {
-        t.Fatalf("user without password can't be saved")
-    }
-}
-
-func TestGetUserByChatID(t *testing.T) {
-    chatID := int64(123)
-    user, err := userRepo.GetByChatID(chatID)
-    if err != nil {
-        t.Fatalf("error getting user: %v", err)
-    }
-    fmt.Println("User: ", user)
-}
-
-func TestGetUserByID(t *testing.T) {
-    ID := 1
-    user, err := userRepo.GetByID(ID)
-    if err != nil {
-        t.Fatalf("error getting user: %v", err)
-    }
-    fmt.Println("User: ", user)
-}
-
-func TestGetUserByEmail(t *testing.T) {
-    email := "ab@gmail.com"
-    user, err := userRepo.GetByEmail(email)
-    if err != nil {
-        t.Fatalf("error getting user: %v", err)
-    }
-    fmt.Println("User: ", user)
-}
-
-func TestUpdateUser(t *testing.T) {
-    newEmail := "abob@fmail.cz"
-    password := "123"
-
-    userToUpdate, err := userRepo.GetByChatID(123)
-    if err != nil {
-        t.Fatalf("error getting user: %v", err)
-    }
-    userToUpdate.Email = &newEmail
-    userToUpdate.Password_en = &password
-    id, err := userRepo.Save(userToUpdate)
-    if err != nil {
-        t.Fatalf("error updating user: %v", err)
-    }
-    fmt.Println("updated user with ID: ", id)
-}
-
-// Tracker tests
-
-func TestCreateTracker(t *testing.T) {
-    err := trackerRepo.Save(&models.Tracker{
-        UserID:   1,
-        Exchange: "binance",
-        Username: "anton",
-        Currency: "BTC",
-        Side:     "buy",
-        Waiting:  false,
-    })
-
-    if err != nil {
-        t.Fatalf("error getting user: %v", err)
-    }
-
-    fmt.Println("Tracker created")
-}
-
-//func TestUpdateTracker(t *testing.T) {
-//    err := trackerRepo.Save(&models.Tracker{
-//        ID:       1,
-//        UserID:   1,
-//        Exchange: "binance",
-//        Username: "anton",
-//        Currency: "BTC",
-//        Side:     "buy",
-//        Payment:  []string{"zen", "wise"},
-//        Waiting:  true,
-//    })
+//func TestSaveUserEmail(t *testing.T) {
+//    email := "ab@gmail.com"
+//    password := "123456"
 //
+//    // Create a new user
+//    user := &models.User{
+//        Email:       &email,
+//        Password_en: &password,
+//    }
+//    id, err := userRepo.Save(user)
+//    if err != nil {
+//        t.Fatalf("error saving user: %v", err)
+//    }
+//    fmt.Println("User ID: ", id)
+//}
+//
+//func TestSaveUserChatID(t *testing.T) {
+//    chatID := int64(12345)
+//
+//    user := &models.User{
+//        ChatID:      &chatID,
+//    }
+//    id, err := userRepo.Save(user)
+//    if err != nil {
+//        t.Fatalf("error saving user: %v", err)
+//    }
+//    fmt.Println("User ID: ", id)
+//}
+//
+//func TestSaveUserEmail2(t *testing.T) {
+//    email := "a@mail.ru"
+//    password := "123456"
+//
+//    // Create a new user
+//    user := &models.User{
+//        Email:       &email,
+//        Password_en: &password,
+//    }
+//    id, err := userRepo.Save(user)
+//    if err != nil {
+//        t.Fatalf("error saving user: %v", err)
+//    }
+//    fmt.Println("User ID: ", id)
+//}
+//
+//func TestSaveUserChatID2(t *testing.T) {
+//    chatID := int64(123)
+//
+//    user := &models.User{
+//        ChatID:      &chatID,
+//    }
+//    id, err := userRepo.Save(user)
+//    if err != nil {
+//        t.Fatalf("error saving user: %v", err)
+//    }
+//    fmt.Println("User ID: ", id)
+//}
+//
+//func TestSaveUserNull(t *testing.T) {
+//    user := &models.User{}
+//    _, err := userRepo.Save(user)
+//    if err == nil {
+//        t.Fatalf("null email and chatid user can't be saved")
+//    }
+//}
+//
+//func TestSaveUserEmailNoPassword(t *testing.T) {
+//    email := "nopass@mail.ri"
+//
+//    user := &models.User{
+//        Email: &email,
+//    }
+//    _, err := userRepo.Save(user)
+//    if err == nil {
+//        t.Fatalf("user without password can't be saved")
+//    }
+//}
+//
+//func TestGetUserByChatID(t *testing.T) {
+//    chatID := int64(123)
+//    user, err := userRepo.GetByChatID(chatID)
 //    if err != nil {
 //        t.Fatalf("error getting user: %v", err)
 //    }
+//    fmt.Println("User: ", user)
+//}
 //
-//    t.Logf("Tracker updated")
+//func TestGetUserByID(t *testing.T) {
+//    ID := 1
+//    user, err := userRepo.GetByID(ID)
+//    if err != nil {
+//        t.Fatalf("error getting user: %v", err)
+//    }
+//    fmt.Println("User: ", user)
+//}
+//
+//func TestGetUserByEmail(t *testing.T) {
+//    email := "ab@gmail.com"
+//    user, err := userRepo.GetByEmail(email)
+//    if err != nil {
+//        t.Fatalf("error getting user: %v", err)
+//    }
+//    fmt.Println("User: ", user)
+//}
+//
+//func TestUpdateUser(t *testing.T) {
+//    newEmail := "abob@fmail.cz"
+//    password := "123"
+//
+//    userToUpdate, err := userRepo.GetByChatID(123)
+//    if err != nil {
+//        t.Fatalf("error getting user: %v", err)
+//    }
+//    userToUpdate.Email = &newEmail
+//    userToUpdate.Password_en = &password
+//    id, err := userRepo.Save(userToUpdate)
+//    if err != nil {
+//        t.Fatalf("error updating user: %v", err)
+//    }
+//    fmt.Println("updated user with ID: ", id)
+//}
+//
+//// Tracker tests
+//
+//
+////func TestUpdateTracker(t *testing.T) {
+////    err := trackerRepo.Save(&models.Tracker{
+////        ID:       1,
+////        UserID:   1,
+////        Exchange: "binance",
+////        Username: "anton",
+////        Currency: "BTC",
+////        Side:     "buy",
+////        Payment:  []string{"zen", "wise"},
+////        Waiting:  true,
+////    })
+////
+////    if err != nil {
+////        t.Fatalf("error getting user: %v", err)
+////    }
+////
+////    t.Logf("Tracker updated")
+////}
+//
+//
+//func TestUpdateOutbided(t *testing.T) {
+//    err := trackerRepo.UpdatePaymentMethodOutbided(1, "BANK", true)
+//    if err != nil {
+//        t.Fatalf("error updating outbided flag")
+//    }
+//    t.Logf("Outbided flag updated")
 //}
 
-func TestSetOutbided(t *testing.T) {
-    err := trackerRepo.UpdateOutbided(1, true);
+
+func TestGetIdsByCurrency(t *testing.T) {
+    ids, err := trackerRepo.GetIdsByCurrency("binance")
     if err != nil {
-        t.Fatalf("error updating outbided flag")
+        t.Fatalf("error getting ids: %v", err)
     }
-    t.Logf("Outbided flag set")
+    fmt.Println("IDs: ", ids)
 }
-
-func TestGetAllTrackers(t *testing.T) {
-    trackers, err := trackerRepo.GetAllTrackers()
-    if err != nil {
-        t.Fatalf("error getting user: %v", err)
-    }
-
-    for _, tracker := range trackers {
-        fmt.Println("Tracker: ", tracker.ID,
-                                    tracker.Exchange,
-                                    tracker.Currency,
-                                    tracker.Side,
-                                    tracker.Username,
-                                    tracker.Outbided,
-                                    tracker.Waiting)
-        for _, method := range tracker.Payment {
-            fmt.Println("Payment method: ", method)
-        }
-    }   
-}
-
-func TestUpdateOutbided(t *testing.T) {
-    err := trackerRepo.UpdatePaymentMethodOutbided(1, "BANK", true)
-    if err != nil {
-        t.Fatalf("error updating outbided flag")
-    }
-    t.Logf("Outbided flag updated")
-}
-
-

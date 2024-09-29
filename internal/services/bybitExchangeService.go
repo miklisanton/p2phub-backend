@@ -245,6 +245,25 @@ func (ex BybitExchange) GetAdsByName(currency, side, username string, pMethods [
 	}
 }
 
+func (ex BybitExchange) GetAds(currency, side string) ([]P2PItemI, error) {
+	out := make([]P2PItemI, 0)
+	i := 1
+	for {
+		response, err := ex.requestData(i, currency, side, []string{})
+		if err != nil {
+			return nil, fmt.Errorf("error while getting advertisements %v", err)
+		}
+		if len(response.Result.Items) == 0 {
+            // all pages parsed
+            return out, nil
+		}
+		for _, item := range response.Result.Items {
+            out = append(out, item)
+		}
+		i++
+	}
+}
+
 func (ex BybitExchange) FetchAllPaymentList() (map[string][]PaymentMethod, error) {
     url := "https://api2.bybit.com/fiat/otc/configuration/queryAllPaymentList"
 
@@ -272,7 +291,7 @@ func (ex BybitExchange) FetchAllPaymentList() (map[string][]PaymentMethod, error
     }
 
     if jsonResp.RetCode != 0 {
-        return nil, fmt.Errorf("bybit error: %s", jsonResp.RetCode)
+        return nil, fmt.Errorf("bybit error: %d", jsonResp.RetCode)
     }
     // Convert json string to map
     CurrencyMap := make(map[string][]int)
@@ -344,7 +363,7 @@ func (ex BybitExchange) GetCachedPaymentMethods(curr string) ([]PaymentMethod, e
 func (ex *BybitExchange)GetCachedCurrencies() ([]string, error) {
     ctx := rediscl.RDB.Ctx 
     // Retrieve from cache
-    currencies, err := rediscl.RDB.Client.LRange(ctx, "bybit:currencies_list", 0, -1).Result()
+    currencies, err := rediscl.RDB.Client.SMembers(ctx, "bybit:currencies_list").Result()
 	if err != nil {
 		return nil, err
 	} 
@@ -361,7 +380,7 @@ func (ex *BybitExchange)GetCachedCurrencies() ([]string, error) {
         }
         // Cache currency list
         for _, item := range currencies {
-            err := rediscl.RDB.Client.LPush(ctx, "bybit:currencies_list", item).Err()
+            err := rediscl.RDB.Client.SAdd(ctx, "bybit:currencies_list", item).Err()
             if err != nil {
                 return nil, err
             }
@@ -377,7 +396,7 @@ func (ex *BybitExchange)GetCachedCurrencies() ([]string, error) {
         if err := rediscl.RDB.Client.JSONSet(ctx, "bybit:currencies", "$", string(jsonMethods)).Err(); err != nil {
             return nil, err
         }
-        if err := rediscl.RDB.Client.Expire(ctx, "bybit:currencies", 12 * time.Hour).Err(); err != nil {
+        if err := rediscl.RDB.Client.Expire(ctx, "bybit:currencies", 24 * time.Hour).Err(); err != nil {
             return nil, err
         }
         return currencies, nil
@@ -394,10 +413,3 @@ func (i Item) GetPaymentMethods() []string {
 	return i.Payments
 }
 
-func (i Item) String() string {
-    minAmount, maxAmount, quantity := i.GetQuantity()
-    return fmt.Sprintf(`bybit|Name: %s, Price: %s, Quantity: %s,
-                        MinAmount: %s, MaxAmount: %s, Payments: %v;`,
-                        i.GetName(), i.GetPrice(), minAmount,
-                        maxAmount, quantity, i.Payments)
-}

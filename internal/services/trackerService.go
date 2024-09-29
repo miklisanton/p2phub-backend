@@ -71,7 +71,7 @@ func (s *TrackerService) CreateTracker(tracker *models.Tracker) error {
 }
 
 func (s *TrackerService) SetWaitingFlag(id int64, flag bool) error { 
-	return s.repo.UpdateWaitingFlag(id, flag)
+	return s.repo.UpdateWaitingUpdate(id, flag)
 }
 
 func (s *TrackerService) GetAllTrackers() ([]*models.UserTracker, error) {
@@ -106,4 +106,13 @@ func (s *TrackerService) GetTrackerStaging(id int) *models.Tracker {
 
 func (s *TrackerService) DeleteTrackerStaging(id int) {
 	delete(s.trStaging, id)
+}
+
+func (s* TrackerService) UpdateMethodOutbiddded(tracker_id int64, pm string, outbid bool) error {
+    return s.repo.UpdatePaymentMethodOutbided(tracker_id, pm, outbid)
+}
+
+// GetIdsByCurrency returns map of "currency+side"(CZKSELL) to tracker ids for given exchange
+func (s *TrackerService) GetIdsByCurrency(exchange string) (map[string][]int, error) {
+    return s.repo.GetIdsByCurrency(exchange)
 }

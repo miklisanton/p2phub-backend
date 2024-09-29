@@ -8,5 +8,8 @@ type Tracker struct {
 	Side     string   `db:"side"`
     Username string   `db:"username"`
     Notify   bool     `db:"notify"`
-	Payment  []PaymentMethod `db:"-"`
+    Price    float64  `db:"price"`
+    WaitingUpdate bool `db:"waiting_update"`
+    IsAggregated bool `db:"is_aggregated"`
+	Payment  []*PaymentMethod `db:"-"`
 }

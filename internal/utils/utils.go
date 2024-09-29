@@ -2,17 +2,52 @@ package utils
 
 import (
 	"fmt"
+    "p2pbot/internal/db/models"
 	"p2pbot/internal/services"
 	"reflect"
+    "encoding/json"
     "golang.org/x/crypto/bcrypt"
 )
 
 type Notification struct {
-	ChatID    int64
-	Data      services.P2PItemI
-	Exchange  string
-	Direction string
-	Currency  string
+    ChatID    int64                 `json:"chat_id"`
+	Data      services.P2PItemI     `json:"top_order"`
+	Exchange  string                `json:"exchange"`
+	Side string                     `json:"side"` 
+	Currency  string                `json:"currency"`
+}
+
+func (n *Notification) UnmarshalJSON(data []byte) error {
+    // Define a temporary structure for the concrete type
+    type Alias Notification
+    aux := &struct {
+        Data json.RawMessage `json:"top_order"`
+        *Alias
+    }{
+        Alias: (*Alias)(n),
+    }
+
+    if err := json.Unmarshal(data, &aux); err != nil {
+        return err
+    }
+
+    if aux.Exchange == "binance" {
+        var item services.DataItem
+        if err := json.Unmarshal(aux.Data, &item); err != nil {
+            return err
+        }
+        n.Data = item
+    } else if aux.Exchange == "bybit"{
+        var item services.Item
+        if err := json.Unmarshal(aux.Data, &item); err != nil {
+            return err
+        }
+        n.Data = item
+    } else {
+        return fmt.Errorf("no unmarshal logic for %s", aux.Exchange)
+    }
+
+    return nil
 }
 
 func GetField(obj interface{}, name string) (interface{}, error) {
@@ -61,6 +96,25 @@ func Contains(s []string, e string) bool {
         }
     }
     return false
+}
+
+// Returns true if one of trackers payment methods is in ads payment methods
+func ComparePaymentMethods(adMethods []string, trackerMethods []*models.PaymentMethod) bool {
+    for _, trackerMethod := range trackerMethods {
+        if Contains(adMethods, trackerMethod.Id) {
+            return true
+        } 
+    }
+    return false
+}
+
+func AllOutbidded(pMethods []*models.PaymentMethod) bool {
+    for _, pMethod := range pMethods {
+        if !pMethod.Outbided {
+            return false
+        }
+    }
+    return true
 }
 
 func GetPMethodName(pMethods []services.PaymentMethod, id string) (string, error) {

@@ -196,7 +196,7 @@ func (bot *Bot) NotifyUsers() {
 		q, minAmount, maxAmount := notification.Data.GetQuantity()
 		c := notification.Currency
 		msg := fmt.Sprintf("Your %s order on %s was outbided by %s.\nPrice: %.3f %s\nQuantity: %.2fUSDT\nMin: %.2f%s\nMax: %.2f%s",
-			notification.Direction, notification.Exchange, notification.Data.GetName(), notification.Data.GetPrice(), c, q, minAmount, c, maxAmount, c)
+			notification.Side, notification.Exchange, notification.Data.GetName(), notification.Data.GetPrice(), c, q, minAmount, c, maxAmount, c)
 
 		bot.SendMessage(notification.ChatID, msg)
 		bot.SendMessage(notification.ChatID, "You won't get notifications until you update your order")

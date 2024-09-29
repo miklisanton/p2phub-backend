@@ -3,8 +3,8 @@
 CREATE TABLE methods (
     tracker_id INT NOT NULL,
     payment_method  varchar(64),
+    payment_name varchar(64),
     outbidded boolean DEFAULT false,
-    notified boolean DEFAULT false,
     UNIQUE (tracker_id, payment_method),
     CONSTRAINT fk_tracker
         FOREIGN KEY (tracker_id)

@@ -7,10 +7,14 @@ import (
 	"p2pbot/internal/db/repository"
 	"p2pbot/internal/rediscl"
 	"p2pbot/internal/services"
+    "p2pbot/internal/rabbitmq"
+    "p2pbot/internal/utils"
 )
 
 // Delete keyboard message after send
 func main() {
+    utils.NewLogger()
+
     DB, cfg, err := app.Init()
     if err != nil {
         panic(err)
@@ -37,6 +41,21 @@ func main() {
 	if err != nil {
 		log.Fatal("Error starting bot: ", err)
 	}
+
+    rabbit, err := rabbitmq.NewRabbitMQ(cfg)
+    if err != nil {
+        log.Fatal("Error starting rabbitmq: ", err)
+    }
+    if err := rabbit.DeclareExchange("notifications"); err != nil {
+        log.Fatal("Error declaring exchange: ", err)
+    }
+    queueName, err := rabbit.QueueBindNDeclare()
+    if err != nil {
+        log.Fatal("Error declaring queue: ", err)
+    }
+    rabbit.StartConsuming(queueName, tgbot.HandleNotification)
+
+
 
 	//go func() {
 	//	err = tgbot.MonitorAds(time.Minute * 1)

@@ -9,6 +9,8 @@ redis:
   host: localhost
   port: 6479
   db: 0
+rabbitmq:
+  url: amqp://guest:guest@localhost/
 telegram:
   api-key: ${BOT_TOKEN}
   bot-link: t.me/p2pmonitor_bot

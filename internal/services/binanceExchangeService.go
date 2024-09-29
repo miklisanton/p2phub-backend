@@ -47,6 +47,7 @@ type BinanceAdsResponse struct {
 	Success bool       `json:"success"`
 }
 
+// Implements P2PItem interface
 type DataItem struct {
 	Adv        Adv        `json:"adv"`
 	Advertiser Advertiser `json:"advertiser"`
@@ -254,6 +255,7 @@ func (ex BinanceExchange) RequestData(page int, currency, side string, pMethods 
 
 	return &binanceResponse, nil
 }
+
 func (ex BinanceExchange) GetAdsByName(currency, side, username string, pMethods []string) ([]P2PItemI, error) {
 	out := make([]P2PItemI, 0)
 	i := 1
@@ -276,6 +278,25 @@ func (ex BinanceExchange) GetAdsByName(currency, side, username string, pMethods
 			if item.GetName() == username {
 				out = append(out, item)
 			}
+		}
+		i++
+	}
+}
+
+func (ex BinanceExchange) GetAds(currency, side string) ([]P2PItemI, error) {
+	out := make([]P2PItemI, 0)
+	i := 1
+	for {
+		response, err := ex.RequestData(i, currency, side, []string{})
+		if err != nil {
+			return nil, fmt.Errorf("error while getting advertisements %v", err)
+		}
+		if len(response.Data) == 0 {
+            // all pages parsed
+            return out, nil
+		}
+		for _, item := range response.Data {
+            out = append(out, item)
 		}
 		i++
 	}
@@ -402,7 +423,7 @@ func (ex BinanceExchange) GetCachedPaymentMethods(curr string) ([]PaymentMethod,
             return nil, err
         }
         // Set expiration
-        if err := rediscl.RDB.Client.Expire(ctx, "binance:currencies", 12 * time.Hour).Err(); err != nil {
+        if err := rediscl.RDB.Client.Expire(ctx, "binance:currencies", 24 * time.Hour).Err(); err != nil {
             return nil, err
         }
         return methods[curr], nil
@@ -425,7 +446,7 @@ func (ex BinanceExchange) GetCachedPaymentMethods(curr string) ([]PaymentMethod,
 func (ex *BinanceExchange)GetCachedCurrencies() ([]string, error) {
     ctx := rediscl.RDB.Ctx 
     // Retrieve from cache
-    currencies, err := rediscl.RDB.Client.LRange(ctx, "binance:currencies_list", 0, -1).Result()
+    currencies, err := rediscl.RDB.Client.SMembers(ctx, "binance:currencies_list").Result()
 	if err != nil {
 		return nil, err
 	} 
@@ -437,7 +458,7 @@ func (ex *BinanceExchange)GetCachedCurrencies() ([]string, error) {
         }
         // Cache the result
         for _, item := range currencies {
-            err := rediscl.RDB.Client.LPush(ctx, "binance:currencies_list", item).Err()
+            err := rediscl.RDB.Client.SAdd(ctx, "binance:currencies_list", item).Err()
             if err != nil {
                 return nil, err
             }
@@ -462,13 +483,4 @@ func (i DataItem) GetPaymentMethods() []string {
 		out = append(out, method.Identifier)
 	}
 	return out
-}
-
-func (i DataItem) String() string {
-    minAmount, maxAmount, quantity := i.GetQuantity()
-    return fmt.Sprintf(`binance|Name: %s, Price: %.2f, Quantity: %.2f,
-                        MinAmount: %.2f, MaxAmount: %.2f, Payments: %v;`,
-                        i.GetName(), i.GetPrice(), quantity,
-                        minAmount, maxAmount, i.GetPaymentMethods())
-
 }

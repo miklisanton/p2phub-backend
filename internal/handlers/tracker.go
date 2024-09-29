@@ -7,8 +7,9 @@ import (
 	"p2pbot/internal/db/models"
 	"p2pbot/internal/requests"
 	"p2pbot/internal/utils"
+	"slices"
 	"strconv"
-    "slices"
+
 	"github.com/labstack/echo/v4"
 )
 
@@ -91,6 +92,54 @@ func (contr *Controller) GetTrackers(c echo.Context) error {
     })
 }
 
+func (contr *Controller) GetTracker(c echo.Context) error {
+    email := c.Get("email").(string)
+    u, err := contr.userService.GetUserByEmail(email)
+    if err == sql.ErrNoRows {
+        return c.JSON(http.StatusNotFound, map[string]any{
+            "message": "User not found",
+            "errors": map[string]any{
+                "user": "not found",
+            },
+        })
+    }
+    if err != nil {
+        return err
+    }
+
+    trackerID, err := strconv.Atoi(c.Param("id"))
+    if err != nil {
+        return c.JSON(http.StatusBadRequest, map[string]any{
+            "message": "Invalid tracker ID",
+            "errors": map[string]any{
+                "tracker": "invalid ID",
+            },
+        })
+    }
+    tracker, err := contr.trackerService.GetTrackerById(trackerID)
+    if err != nil {
+        return c.JSON(http.StatusNotFound, map[string]any{
+            "message": "Tracker not found",
+            "errors": map[string]any{
+                "tracker": "not found",
+            },
+        })
+    }
+    // Check if tracker created by user
+    if tracker.UserID != u.ID {
+        return c.JSON(http.StatusForbidden, map[string]any{
+            "message": "Forbidden",
+            "errors": map[string]any{
+                "tracker": "not found",
+            },
+        })
+    }
+    return c.JSON(http.StatusFound, map[string]any{
+        "message": "Tracker found",
+        "tracker": tracker,
+    })
+}
+
 func (contr *Controller) CreateTracker(c echo.Context) error {
     email := c.Get("email").(string)
     u, err := contr.userService.GetUserByEmail(email)
@@ -124,11 +173,15 @@ func (contr *Controller) CreateTracker(c echo.Context) error {
         Side: trackerReq.Side,
         Username: trackerReq.Username,
         Notify: *trackerReq.Notify,
-        Payment: make([]models.PaymentMethod, 0),
+        Payment: make([]*models.PaymentMethod, 0),
+    }
+    // If no payments method provided in request, treat as aggregated tracker
+    if len(trackerReq.Payment) == 0 {
+        tracker.IsAggregated = true
     }
     // Recieve payment methods from request and add them to tracker
     for _, p := range trackerReq.Payment {
-        tracker.Payment = append(tracker.Payment, models.PaymentMethod{
+        tracker.Payment = append(tracker.Payment, &models.PaymentMethod{
             Id: p,
         })
     }
@@ -177,9 +230,11 @@ func (contr *Controller) CreateTracker(c echo.Context) error {
     }
     createdTrackers := make([]models.Tracker, 0)
     for _, adv := range ads {
+        // Set price
+        tracker.Price = adv.GetPrice()
         // Recieve payment methods from ad
         pmStrings := adv.GetPaymentMethods() 
-        pms := make([]models.PaymentMethod, 0)
+        pms := make([]*models.PaymentMethod, 0)
         for _, p := range pmStrings {
             // Get name from id and add to tracker
             name, err := utils.GetPMethodName(pMethods, p)
@@ -191,7 +246,7 @@ func (contr *Controller) CreateTracker(c echo.Context) error {
                     },
                 })
             }
-            pms = append(pms, models.PaymentMethod{
+            pms = append(pms, &models.PaymentMethod{
                 Id: p,
                 Name: name,
             })
@@ -422,6 +477,7 @@ func (contr *Controller) GetCurrencies(c echo.Context) error {
     }
 
     out, err := exch.GetCachedCurrencies()
+
     if err != nil {
         return err
     }

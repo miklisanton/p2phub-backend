@@ -28,6 +28,7 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mfridman/interpolate v0.0.2 // indirect
+	github.com/rabbitmq/amqp091-go v1.10.0 // indirect
 	github.com/redis/go-redis/v9 v9.6.1 // indirect
 	github.com/rs/zerolog v1.33.0 // indirect
 	github.com/sethvargo/go-retry v0.2.4 // indirect
