@@ -64,6 +64,7 @@ func main() {
         CookieHTTPOnly: true,
         CookieSameSite: http.SameSiteNoneMode,
         CookieSecure: false,
+        CookiePath: "/",
         TokenLookup: "cookie:_csrf",
     }))
 
