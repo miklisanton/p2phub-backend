@@ -11,9 +11,6 @@ import (
 	"p2pbot/internal/utils"
 	"time"
     "golang.org/x/crypto/acme/autocert"
-    "log"
-    "crypto/tls"
-	"golang.org/x/crypto/acme"
 
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
