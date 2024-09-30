@@ -1,17 +1,19 @@
 package main
 
 import (
-    "p2pbot/internal/rediscl"
-    "github.com/labstack/echo/v4"
-    "p2pbot/internal/app"
-    "p2pbot/internal/handlers"
-    echojwt "github.com/labstack/echo-jwt/v4"
-    echomiddleware "github.com/labstack/echo/v4/middleware"
-    "p2pbot/internal/JWTConfig"
-    "p2pbot/internal/db/repository"
-    "p2pbot/internal/services"
-    "p2pbot/internal/utils"
-    "time"
+	"net/http"
+	"p2pbot/internal/JWTConfig"
+	"p2pbot/internal/app"
+	"p2pbot/internal/db/repository"
+	"p2pbot/internal/handlers"
+	"p2pbot/internal/rediscl"
+	"p2pbot/internal/services"
+	"p2pbot/internal/utils"
+	"time"
+
+	echojwt "github.com/labstack/echo-jwt/v4"
+	"github.com/labstack/echo/v4"
+	echomiddleware "github.com/labstack/echo/v4/middleware"
 )
 
 
@@ -59,6 +61,9 @@ func main() {
         AllowCredentials: true,
     }))
     e.Use(echomiddleware.CSRFWithConfig(echomiddleware.CSRFConfig{
+        CookieHTTPOnly: true,
+        CookieSameSite: http.SameSiteNoneMode,
+        CookieSecure: false,
         TokenLookup: "cookie:_csrf",
     }))
 
