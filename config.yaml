@@ -18,5 +18,7 @@ exchange:
   max-retries: 20
   retry-delay: 30
 website:
-  port: 8080
+  port: 443
+  cert-file: /app/certs/cert.crt
+  key-file: /app/certs/key.pem
   jwt-secret: ${JWT_SECRET}

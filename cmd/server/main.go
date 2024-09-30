@@ -10,7 +10,7 @@ import (
 	"p2pbot/internal/services"
 	"p2pbot/internal/utils"
 	"time"
-    "golang.org/x/crypto/acme/autocert"
+    "crypto/tls"
     "log"
 
 	echojwt "github.com/labstack/echo-jwt/v4"
@@ -20,24 +20,6 @@ import (
 
 
 func main() {
-    // Create an autocert Manager
-    m := &autocert.Manager{
-        Prompt:     autocert.AcceptTOS,
-        HostPolicy: autocert.HostWhitelist("p2phub.top", "www.p2phub.com"),
-        Cache:      autocert.DirCache("certs"), // Directory to store certificates
-    }
-
-    // Start HTTP server for Let's Encrypt HTTP-01 challenges
-    go func() {
-        httpServer := &http.Server{
-            Addr:    ":80",
-            Handler: m.HTTPHandler(nil), // Handle HTTP challenges
-        }
-        log.Println("Starting HTTP server on :80 for ACME challenges")
-        if err := httpServer.ListenAndServe(); err != nil {
-            log.Fatalf("HTTP server failed: %v", err)
-        }
-    }()
     // wait until all services are up
     time.Sleep(10 * time.Second)
     DB, cfg, err := app.Init()
@@ -117,5 +99,17 @@ func main() {
     privateGroup.POST("/telegram/connect", controller.ConnectTelegram)
     
 
-    e.Logger.Fatal(e.Start(":"+cfg.Website.Port))
+    cert, err := tls.LoadX509KeyPair(cfg.Website.CertFile, cfg.Website.KeyFile)
+    if err != nil {
+      log.Fatalf("Failed to load X509 key pair: %v", err)
+    }
+    configTLS := &tls.Config{
+      Certificates: []tls.Certificate{cert},
+    }
+    server := &http.Server{
+        Addr:         ":" + cfg.Website.Port,
+        Handler:      e,
+        TLSConfig:    configTLS,
+    }
+    e.Logger.Fatal(server.ListenAndServeTLS("", ""))
 }

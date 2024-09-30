@@ -36,6 +36,8 @@ type Config struct {
 	}
     Website struct {
         Port string `yaml:"port"`
+        CertFile string `yaml:"cert-file"`
+        KeyFile string `yaml:"key-file"`
         JWTSecret string `yaml:"jwt-secret"`
     }
 }
