@@ -10,6 +10,10 @@ import (
 	"p2pbot/internal/services"
 	"p2pbot/internal/utils"
 	"time"
+    "golang.org/x/crypto/acme/autocert"
+    "log"
+    "crypto/tls"
+	"golang.org/x/crypto/acme"
 
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
@@ -47,6 +51,8 @@ func main() {
 
     utils.NewLogger()
     e := echo.New()
+    e.AutoTLSManager.Cache = autocert.DirCache("/var/www/.cache")
+	e.Use(echomiddleware.Recover())
     e.Use(utils.LoggingMiddleware)
 
     e.Use(echomiddleware.CORSWithConfig(echomiddleware.CORSConfig{
@@ -97,5 +103,5 @@ func main() {
     privateGroup.POST("/telegram/connect", controller.ConnectTelegram)
     
 
-    e.Logger.Fatal(e.Start(":"+cfg.Website.Port))
+    e.Logger.Fatal(e.StartAutoTLS(":"+cfg.Website.Port))
 }

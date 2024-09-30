@@ -17,7 +17,7 @@ services:
     build:
       context: ./cmd/server
     ports:
-      - "1323:1323"
+      - "443:443"
     volumes:
       - ./.env:/app/.env
       - ./config.yaml:/app/config.yaml
