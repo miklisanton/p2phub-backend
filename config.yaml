@@ -19,6 +19,7 @@ exchange:
   retry-delay: 30
 website:
   port: 443
-  cert-file: /app/certs/cert.crt
-  key-file: /app/certs/key.pem
+  key-file: /app/certs/privkey.pem
+  cert-file: /app/certs/fullchain.pem
   jwt-secret: ${JWT_SECRET}
+

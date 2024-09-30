@@ -114,10 +114,10 @@ func (contr *Controller) Login(c echo.Context) error {
     }
 
     c.SetCookie(&http.Cookie{
-        HttpOnly: true,
+        Secure: true,
         Value: tokenString,
         Expires: time.Now().Add(time.Hour * 24),
-        SameSite: http.SameSiteLaxMode,
+        SameSite: http.SameSiteNoneMode,
         Name: "token",
         Path: "/",
     })
