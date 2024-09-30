@@ -18,5 +18,5 @@ exchange:
   max-retries: 20
   retry-delay: 30
 website:
-  port: 1323
+  port: 80
   jwt-secret: ${JWT_SECRET}

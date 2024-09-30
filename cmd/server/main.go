@@ -62,7 +62,8 @@ func main() {
     }))
     e.Use(echomiddleware.CSRFWithConfig(echomiddleware.CSRFConfig{
         CookieHTTPOnly: true,
-        CookieSameSite: http.SameSiteLaxMode,
+        CookieSameSite: http.SameSiteNoneMode,
+        CookieSecure: true,
         CookiePath: "/",
         TokenLookup: "cookie:_csrf",
     }))
