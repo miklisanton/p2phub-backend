@@ -11,6 +11,7 @@ import (
 	"p2pbot/internal/utils"
 	"time"
     "golang.org/x/crypto/acme/autocert"
+    "log"
 
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
@@ -19,6 +20,24 @@ import (
 
 
 func main() {
+    // Create an autocert Manager
+    m := &autocert.Manager{
+        Prompt:     autocert.AcceptTOS,
+        HostPolicy: autocert.HostWhitelist("p2phub.top", "www.p2phub.com"),
+        Cache:      autocert.DirCache("certs"), // Directory to store certificates
+    }
+
+    // Start HTTP server for Let's Encrypt HTTP-01 challenges
+    go func() {
+        httpServer := &http.Server{
+            Addr:    ":80",
+            Handler: m.HTTPHandler(nil), // Handle HTTP challenges
+        }
+        log.Println("Starting HTTP server on :80 for ACME challenges")
+        if err := httpServer.ListenAndServe(); err != nil {
+            log.Fatalf("HTTP server failed: %v", err)
+        }
+    }()
     // wait until all services are up
     time.Sleep(10 * time.Second)
     DB, cfg, err := app.Init()
@@ -48,8 +67,6 @@ func main() {
 
     utils.NewLogger()
     e := echo.New()
-    e.AutoTLSManager.Cache = autocert.DirCache("/var/www/.cache")
-	e.Use(echomiddleware.Recover())
     e.Use(utils.LoggingMiddleware)
 
     e.Use(echomiddleware.CORSWithConfig(echomiddleware.CORSConfig{
@@ -100,5 +117,5 @@ func main() {
     privateGroup.POST("/telegram/connect", controller.ConnectTelegram)
     
 
-    e.Logger.Fatal(e.StartAutoTLS(":"+cfg.Website.Port))
+    e.Logger.Fatal(e.Start(":"+cfg.Website.Port))
 }
