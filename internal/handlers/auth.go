@@ -117,7 +117,7 @@ func (contr *Controller) Login(c echo.Context) error {
         Secure: true,
         Value: tokenString,
         Expires: time.Now().Add(time.Hour * 24),
-        SameSite: http.SameSiteStrictMode,
+        SameSite: http.SameSiteNoneMode,
         Name: "token",
         Path: "/",
     })
@@ -132,7 +132,7 @@ func (contr *Controller) Logout(c echo.Context) error {
         Secure: true,
         Value: "",
         Expires: time.Now(),
-        SameSite: http.SameSiteStrictMode,
+        SameSite: http.SameSiteNoneMode,
         Path: "/",
         Name: "token",
     })
