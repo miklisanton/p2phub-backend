@@ -115,9 +115,11 @@ func (contr *Controller) Login(c echo.Context) error {
 
     c.SetCookie(&http.Cookie{
         Secure: true,
+        HttpOnly: true,
         Value: tokenString,
+        Domain: "p2phub.top",
         Expires: time.Now().Add(time.Hour * 24),
-        SameSite: http.SameSiteNoneMode,
+        SameSite: http.SameSiteLaxMode,
         Name: "token",
         Path: "/",
     })
@@ -130,9 +132,11 @@ func (contr *Controller) Login(c echo.Context) error {
 func (contr *Controller) Logout(c echo.Context) error {
     c.SetCookie(&http.Cookie{
         Secure: true,
+        HttpOnly: true,
+        Domain: "p2phub.top",
         Value: "",
         Expires: time.Now(),
-        SameSite: http.SameSiteNoneMode,
+        SameSite: http.SameSiteLaxMode,
         Path: "/",
         Name: "token",
     })
