@@ -19,6 +19,7 @@ exchange:
   retry-delay: 30
 website:
   port: 443
+  backend-port: 8443
   key-file: /app/certs/privkey.pem
   cert-file: /app/certs/fullchain.pem
   front-url: http://front:3000

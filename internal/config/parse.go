@@ -36,6 +36,7 @@ type Config struct {
 	}
     Website struct {
         Port string `yaml:"port"`
+        BackendPort string `yaml:"backend-port"`
         CertFile string `yaml:"cert-file"`
         KeyFile string `yaml:"key-file"`
         FrontURL string `yaml:"front-url"`
