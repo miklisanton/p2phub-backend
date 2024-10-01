@@ -38,6 +38,7 @@ type Config struct {
         Port string `yaml:"port"`
         CertFile string `yaml:"cert-file"`
         KeyFile string `yaml:"key-file"`
+        FrontURL string `yaml:"front-url"`
         JWTSecret string `yaml:"jwt-secret"`
     }
 }

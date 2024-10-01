@@ -20,6 +20,7 @@ import (
 
 
 func main() {
+
     // wait until all services are up
     time.Sleep(10 * time.Second)
     DB, cfg, err := app.Init()
@@ -111,5 +112,17 @@ func main() {
         Handler:      e,
         TLSConfig:    configTLS,
     }
+
+    // reverse proxy
+    frontendServer := &http.Server{
+        Addr:         ":" + cfg.Website.Port,
+        Handler:      handlers.ProxyFrontend(cfg),
+        TLSConfig:    configTLS,
+    }
+    go func() {
+        e.Logger.Fatal(frontendServer.ListenAndServeTLS("", ""))
+    }()
+
     e.Logger.Fatal(server.ListenAndServeTLS("", ""))
 }
+
