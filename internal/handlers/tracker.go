@@ -232,8 +232,15 @@ func (contr *Controller) CreateTracker(c echo.Context) error {
     for _, adv := range ads {
         // Set price
         tracker.Price = adv.GetPrice()
-        // Recieve payment methods from ad
-        pmStrings := adv.GetPaymentMethods() 
+        // Set payment methods
+        var pmStrings []string
+        if tracker.IsAggregated {
+            // Recieve payment methods from ad if not provided in request(only for non-aggregated trackers)
+            pmStrings = adv.GetPaymentMethods() 
+        } else {
+            // Recieve payment methods from request if provided
+            pmStrings = trackerReq.Payment
+        }
         pms := make([]*models.PaymentMethod, 0)
         for _, p := range pmStrings {
             // Get name from id and add to tracker
