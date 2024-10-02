@@ -13,7 +13,7 @@ rabbitmq:
   url: amqp://guest:guest@rabbitmq:5672/
 telegram:
   api-key: ${BOT_TOKEN}
-  bot-link: t.me/p2pmonitor_bot
+  bot-link: ${BOT_LINK}
 exchange:
   max-retries: 20
   retry-delay: 30
