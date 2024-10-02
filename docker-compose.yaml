@@ -19,7 +19,7 @@ services:
     ports:
       - "443:443"
       - "8080:8080"
-      - "80:80"
+      - "8443:8443"
     volumes:
       - ./.env:/app/.env
       - ./config.yaml:/app/config.yaml
