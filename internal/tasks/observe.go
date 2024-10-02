@@ -178,6 +178,9 @@ func (ao *AdsObserver) Notify(tracker *models.Tracker, ad services.P2PItemI) {
         utils.Logger.Info().Msg(fmt.Sprintf("Can't sent notification, because user with userID %d has no telegram connected", user.ID))
         return 
     }
+    if !tracker.Notify {
+        return
+    } 
     n := utils.Notification{
         Data: ad,
         Exchange: tracker.Exchange,

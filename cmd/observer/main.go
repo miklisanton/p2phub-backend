@@ -31,11 +31,6 @@ func main() {
     binance := services.NewBinanceExchange(cfg)
     exs := []services.ExchangeI{binance, bybit}
 
-    mapp, err := trackerService.GetIdsByCurrency("binance")
-    if err != nil {
-        fmt.Println("Error: ", err)
-    }
-    fmt.Println("map: ", mapp)
     rabbit, err := rabbitmq.NewRabbitMQ(cfg)
     if err != nil {
         fmt.Println("Error: ", err)
