@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/lib/pq"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -93,6 +94,9 @@ func (bot *Bot) HandleStart(msg *tgbotapi.Message) error {
         }
         user.ChatID = &msg.Chat.ID
         if _, err := bot.userService.CreateUser(user); err != nil {
+            if err, ok := err.(*pq.Error); ok && err.Code == "23505" {
+                bot.SendMessage(msg.Chat.ID, "This telegram account is already connected. Contact support @p2phubb")
+            }
             return err
         }
         // Delete unique_code from redis
