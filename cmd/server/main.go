@@ -53,7 +53,11 @@ func main() {
     e.Use(utils.LoggingMiddleware)
 
     e.Use(echomiddleware.CORSWithConfig(echomiddleware.CORSConfig{
-        AllowOrigins: []string{"https://p2phub.top", "http://localhost:5173", "http://localhost:3000"},
+        AllowOrigins: []string{
+            "https://p2phub.top",
+            "https://localhost",
+            "https://localhost:443",
+            "https://localhost:8443"},
         AllowHeaders: []string{
             echo.HeaderOrigin, 
             echo.HeaderContentType,
