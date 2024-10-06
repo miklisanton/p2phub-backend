@@ -55,6 +55,7 @@ func main() {
     e.Use(echomiddleware.CORSWithConfig(echomiddleware.CORSConfig{
         AllowOrigins: []string{
             "https://p2phub.top",
+            "https://dev.p2phub.top",
             "https://localhost",
             "https://localhost:443",
             "https://localhost:8443"},
@@ -129,4 +130,3 @@ func main() {
 
     e.Logger.Fatal(server.ListenAndServeTLS("", ""))
 }
-

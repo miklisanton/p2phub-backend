@@ -118,7 +118,7 @@ func (contr *Controller) Login(c echo.Context) error {
 
 	c.SetCookie(&http.Cookie{
 		HttpOnly: true,
-        Secure:   true,
+		Secure:   true,
 		Value:    tokenString,
 		Expires:  time.Now().Add(time.Hour * 24),
 		SameSite: http.SameSiteNoneMode,
@@ -134,7 +134,7 @@ func (contr *Controller) Login(c echo.Context) error {
 func (contr *Controller) Logout(c echo.Context) error {
 	c.SetCookie(&http.Cookie{
 		HttpOnly: true,
-        Secure:   true,
+		Secure:   true,
 		Value:    "",
 		Expires:  time.Now(),
 		SameSite: http.SameSiteNoneMode,
