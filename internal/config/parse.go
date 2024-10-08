@@ -41,6 +41,8 @@ type Config struct {
         KeyFile string `yaml:"key-file"`
         FrontURL string `yaml:"front-url"`
         JWTSecret string `yaml:"jwt-secret"`
+        SubPrice string `yaml:"subsctiption-price"`
+        SubCurrency string `yaml:"subscription-currency"`
     }
 }
 

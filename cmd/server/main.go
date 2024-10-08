@@ -38,14 +38,15 @@ func main() {
 
     rediscl.InitRedisClient(cfg.Redis.Host, cfg.Redis.Port)
 
-    controller := handlers.NewController(userService,
-                                            trackerService,
-                                            map[string]services.ExchangeI{
-                                                "binance": binance,
-                                                "bybit": bybit,
-                                            },
-                                            cfg.Website.JWTSecret,
-                                            cfg.Telegram.InviteLink)
+    controller := handlers.NewController(
+        userService,
+        trackerService,
+        map[string]services.ExchangeI{
+            "binance": binance,
+            "bybit": bybit,
+        },
+        cfg,
+    )
 
 
     utils.NewLogger()
@@ -59,7 +60,8 @@ func main() {
             "https://localhost",
             "https://dev.localhost",
             "https://localhost:443",
-            "https://localhost:8443"},
+            "https://localhost:8443",
+        },
         AllowHeaders: []string{
             echo.HeaderOrigin, 
             echo.HeaderContentType,
