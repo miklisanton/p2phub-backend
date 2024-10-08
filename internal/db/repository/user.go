@@ -23,13 +23,12 @@ func (repo *UserRepository) Save(user *models.User) (int, error) {
 
     if user.ID == 0 {
         query := `
-            INSERT INTO users(email, password_enc, chat_id) 
-            VALUES ($1, $2, $3)
+            INSERT INTO users(email, chat_id) 
+            VALUES ($1,$2)
             RETURNING id`
 
         row := repo.db.QueryRow(query,
                                     user.Email,
-                                    user.Password_en,
                                     user.ChatID)
 
         if row.Err() != nil {
@@ -44,14 +43,12 @@ func (repo *UserRepository) Save(user *models.User) (int, error) {
         return user.ID, nil
     } else {
         query := `UPDATE users SET email = $1,
-                    password_enc = $2,
-                    chat_id = $3
-                    WHERE id = $4
+                    chat_id = $2
+                    WHERE id = $3
                     RETURNING id`
 
         row := repo.db.QueryRow(query,
                                     user.Email,
-                                    user.Password_en,
                                     user.ChatID,
                                     user.ID)
 
@@ -71,12 +68,10 @@ func (repo *UserRepository) Save(user *models.User) (int, error) {
 
 func (repo *UserRepository) Update(user *models.User) error {
     query := `UPDATE users SET email = $1,
-                password_enc = $2,
-                chat_id = $3
-                WHERE id = $4`
+                chat_id = $2
+                WHERE id = $3`
 
     _, err := repo.db.Exec(query, user.Email,
-                                    user.Password_en,
                                     user.ChatID,
                                     user.ID)
     return err

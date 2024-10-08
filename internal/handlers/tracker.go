@@ -520,3 +520,11 @@ func (cont *Controller) GetExchanges(c echo.Context) error {
         "exchanges": out,
     })
 }
+
+func (cont *Controller) TestFunc(c echo.Context) error {
+	email := c.Get("email").(string)
+    return c.JSON(http.StatusOK, map[string]any{
+        "message": "Test",
+        "email": email,
+    })
+}

@@ -2,7 +2,7 @@ package main
 
 import (
 	"net/http"
-	"p2pbot/internal/JWTConfig"
+	//"p2pbot/internal/JWTConfig"
 	"p2pbot/internal/app"
 	"p2pbot/internal/db/repository"
 	"p2pbot/internal/handlers"
@@ -13,7 +13,7 @@ import (
     "crypto/tls"
     "log"
 
-	echojwt "github.com/labstack/echo-jwt/v4"
+	//echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
 	echomiddleware "github.com/labstack/echo/v4/middleware"
 )
@@ -22,7 +22,7 @@ import (
 func main() {
 
     // wait until all services are up
-    time.Sleep(10 * time.Second)
+    time.Sleep(5 * time.Second)
     DB, cfg, err := app.Init()
     if err != nil {
         panic(err)
@@ -57,6 +57,7 @@ func main() {
             "https://p2phub.top",
             "https://dev.p2phub.top",
             "https://localhost",
+            "https://dev.localhost",
             "https://localhost:443",
             "https://localhost:8443"},
         AllowHeaders: []string{
@@ -77,17 +78,18 @@ func main() {
     }))
 
     publicGroup := e.Group("/api/v1/public")
-    // authentification routes
-    publicGroup.POST("/login", controller.Login) 
+    //Route for auth0 signup webhook
     publicGroup.POST("/signup", controller.Signup)
     //CSRF token
     publicGroup.GET("/csrf", controller.GetCSRFToken)
 
     privateGroup := e.Group("/api/v1/private")
 
-    config := JWTConfig.NewJWTConfig(cfg)
-    privateGroup.Use(echojwt.WithConfig(config))
-    privateGroup.Use(utils.AuthMiddleware)
+    //config := JWTConfig.NewJWTConfig(cfg)
+    //privateGroup.Use(echojwt.WithConfig(config))
+    //privateGroup.Use(utils.AuthMiddleware)
+    privateGroup.Use(utils.CheckJWT)
+    privateGroup.Use(utils.ExtractEmail)
     // tracker routes
     privateGroup.GET("/trackers", controller.GetTrackers)
     privateGroup.POST("/trackers", controller.CreateTracker)
@@ -99,10 +101,10 @@ func main() {
     privateGroup.GET("/trackers/options/currencies", controller.GetCurrencies)
     privateGroup.GET("/trackers/options/exchanges", controller.GetExchanges)
     // User routes
-    privateGroup.POST("/logout", controller.Logout) 
     privateGroup.GET("/profile", controller.GetProfile) 
     // connect telegram route
     privateGroup.POST("/telegram/connect", controller.ConnectTelegram)
+    privateGroup.GET("/test", controller.TestFunc)
     
 
     cert, err := tls.LoadX509KeyPair(cfg.Website.CertFile, cfg.Website.KeyFile)
