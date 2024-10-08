@@ -71,13 +71,6 @@ func main() {
         },
         AllowCredentials: true,
     }))
-    e.Use(echomiddleware.CSRFWithConfig(echomiddleware.CSRFConfig{
-        CookieHTTPOnly: true,
-        CookieSameSite: http.SameSiteNoneMode,
-        CookieSecure: true,
-        CookiePath: "/",
-        TokenLookup: "cookie:_csrf",
-    }))
 
     publicGroup := e.Group("/api/v1/public")
     //Route for auth0 signup webhook
