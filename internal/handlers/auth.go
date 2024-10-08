@@ -21,6 +21,13 @@ func (contr *Controller) Signup(c echo.Context) error {
 		return err
 	}
 
+
+
+    utils.Logger.Debug().Fields(map[string]interface{}{
+        "email": u.Email,
+        "secret": u.Secret,
+    }).Msg("Signup request")
+
     if (u.Secret != os.Getenv("AUTH0_SIGNUP_SECRET")) {
         utils.Logger.LogError().Msg("Invalid secret in signup request")
         return c.JSON(http.StatusUnauthorized, map[string]any{
