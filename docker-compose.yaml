@@ -54,22 +54,14 @@ services:
       POSTGRES_DB: p2p_bot
     volumes:
       - db_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     networks:
       - app-network
   cache:
     image: redis/redis-stack
-    ports:
-      - "6379:6379"
-      - "8001:8001"
     networks:
       - app-network
   rabbitmq:
     image: rabbitmq:management
-    ports:
-      - "5672:5672"
-      - "15672:15672"
     networks:
       - app-network
 
