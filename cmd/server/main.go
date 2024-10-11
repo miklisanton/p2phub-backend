@@ -77,6 +77,8 @@ func main() {
     publicGroup.POST("/signup", controller.Signup)
     //CSRF token
     publicGroup.GET("/csrf", controller.GetCSRFToken)
+    // Route for payment webhook
+    publicGroup.POST("/subscriptions/confirm", controller.ConfirmOrder)
 
     privateGroup := e.Group("/api/v1/private")
 
