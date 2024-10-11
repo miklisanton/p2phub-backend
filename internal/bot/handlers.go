@@ -1,11 +1,11 @@
 package bot
 
 import (
-	"encoding/json"
-	"p2pbot/internal/utils"
-	"strings"
+    "encoding/json"
+    "p2pbot/internal/utils"
+    "strings"
     "fmt"
-	amqp "github.com/rabbitmq/amqp091-go"
+    amqp "github.com/rabbitmq/amqp091-go"
 )
 
 func (bot *Bot) HandleNotification(msg amqp.Delivery) {

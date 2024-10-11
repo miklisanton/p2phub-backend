@@ -1,18 +1,18 @@
 package utils
 
 import (
-	"net/http"
-	"net/url"
-	"os"
-	"p2pbot/internal/JWTConfig"
-	"time"
+    "net/http"
+    "net/url"
+    "os"
+    "p2pbot/internal/JWTConfig"
+    "time"
 
-	jwtmiddleware "github.com/auth0/go-jwt-middleware/v2"
-	"github.com/auth0/go-jwt-middleware/v2/jwks"
-	"github.com/auth0/go-jwt-middleware/v2/validator"
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/labstack/echo/v4"
-	"golang.org/x/net/context"
+    jwtmiddleware "github.com/auth0/go-jwt-middleware/v2"
+    "github.com/auth0/go-jwt-middleware/v2/jwks"
+    "github.com/auth0/go-jwt-middleware/v2/validator"
+    "github.com/golang-jwt/jwt/v5"
+    "github.com/labstack/echo/v4"
+    "golang.org/x/net/context"
 )
 
 type CustomClaims struct {
@@ -54,10 +54,10 @@ func CheckJWT(next echo.HandlerFunc) echo.HandlerFunc {
     errorHandler := func(w http.ResponseWriter, r *http.Request, err error) {
         Logger.LogError().Err(err).Msg("Failed to validate JWT")
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		w.Write([]byte(`{"message":"Failed to validate JWT."}`))
-	}
+        w.Header().Set("Content-Type", "application/json")
+        w.WriteHeader(http.StatusUnauthorized)
+        w.Write([]byte(`{"message":"Failed to validate JWT."}`))
+    }
     middleware := jwtmiddleware.New(
         jwtValidator.ValidateToken,
         jwtmiddleware.WithErrorHandler(errorHandler),
@@ -65,20 +65,20 @@ func CheckJWT(next echo.HandlerFunc) echo.HandlerFunc {
 
     return func(ctx echo.Context) error {
         encounteredError := true
-		var handler http.HandlerFunc = func(w http.ResponseWriter, r *http.Request) {
-			encounteredError = false
-			ctx.SetRequest(r)
-			next(ctx)
-		}
+        var handler http.HandlerFunc = func(w http.ResponseWriter, r *http.Request) {
+            encounteredError = false
+            ctx.SetRequest(r)
+            next(ctx)
+        }
 
-		middleware.CheckJWT(handler).ServeHTTP(ctx.Response(), ctx.Request())
+        middleware.CheckJWT(handler).ServeHTTP(ctx.Response(), ctx.Request())
 
-		if encounteredError {
-			ctx.JSON(
-				http.StatusUnauthorized,
-				map[string]string{"message": "JWT is invalid."},
-			)
-		}
+        if encounteredError {
+            ctx.JSON(
+                http.StatusUnauthorized,
+                map[string]string{"message": "JWT is invalid."},
+            )
+        }
         
         return nil
     }

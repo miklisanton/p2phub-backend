@@ -8,16 +8,16 @@ import (
 )
 
 type JWTCustomClaims struct {
-	Email  string `json:"email"`
-	jwt.RegisteredClaims
+    Email  string `json:"email"`
+    jwt.RegisteredClaims
 }
 
 func NewJWTConfig(cfg *config.Config) echojwt.Config {
     return echojwt.Config{
-		NewClaimsFunc: func(c echo.Context) jwt.Claims {
-			return new(JWTCustomClaims)
-		},
-		SigningKey: []byte(cfg.Website.JWTSecret),
+        NewClaimsFunc: func(c echo.Context) jwt.Claims {
+            return new(JWTCustomClaims)
+        },
+        SigningKey: []byte(cfg.Website.JWTSecret),
         TokenLookup: "cookie:token",
-	}
+    }
 }

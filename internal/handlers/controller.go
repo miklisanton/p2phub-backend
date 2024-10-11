@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"p2pbot/internal/services"
+    "p2pbot/internal/services"
     "p2pbot/internal/config"
 )
 

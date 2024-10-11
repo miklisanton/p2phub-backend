@@ -1,20 +1,20 @@
 package utils
 
 import (
-	"fmt"
+    "fmt"
     "p2pbot/internal/db/models"
-	"p2pbot/internal/services"
-	"reflect"
+    "p2pbot/internal/services"
+    "reflect"
     "encoding/json"
     "golang.org/x/crypto/bcrypt"
 )
 
 type Notification struct {
     ChatID    int64                 `json:"chat_id"`
-	Data      services.P2PItemI     `json:"top_order"`
-	Exchange  string                `json:"exchange"`
-	Side string                     `json:"side"` 
-	Currency  string                `json:"currency"`
+    Data      services.P2PItemI     `json:"top_order"`
+    Exchange  string                `json:"exchange"`
+    Side string                     `json:"side"` 
+    Currency  string                `json:"currency"`
 }
 
 func (n *Notification) UnmarshalJSON(data []byte) error {
@@ -51,29 +51,29 @@ func (n *Notification) UnmarshalJSON(data []byte) error {
 }
 
 func GetField(obj interface{}, name string) (interface{}, error) {
-	v := reflect.ValueOf(obj).Elem()
+    v := reflect.ValueOf(obj).Elem()
 
-	field := v.FieldByName(name)
-	if !field.IsValid() {
-		return nil, fmt.Errorf("no such field: %s in obj", name)
-	}
+    field := v.FieldByName(name)
+    if !field.IsValid() {
+        return nil, fmt.Errorf("no such field: %s in obj", name)
+    }
 
-	return field.Interface(), nil
+    return field.Interface(), nil
 }
 
 func SetField(obj interface{}, name string, value interface{}) error {
-	v := reflect.ValueOf(obj).Elem()
+    v := reflect.ValueOf(obj).Elem()
 
-	field := v.FieldByName(name)
-	if !field.IsValid() {
-		return fmt.Errorf("no such field: %s in obj", name)
-	}
-	if !field.CanSet() {
-		return fmt.Errorf("cannot set %s field value", name)
-	}
+    field := v.FieldByName(name)
+    if !field.IsValid() {
+        return fmt.Errorf("no such field: %s in obj", name)
+    }
+    if !field.CanSet() {
+        return fmt.Errorf("cannot set %s field value", name)
+    }
 
-	field.Set(reflect.ValueOf(value))
-	return nil
+    field.Set(reflect.ValueOf(value))
+    return nil
 }
 
 func HashPassword(password string) (string, error) {

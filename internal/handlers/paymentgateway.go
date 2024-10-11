@@ -1,21 +1,21 @@
 package handlers
 
 import (
-	"crypto/md5"
-	"database/sql"
-	"encoding/base64"
-	"encoding/json"
-	"fmt"
-	"net/http"
-	"os"
-	"p2pbot/internal/rediscl"
-	"p2pbot/internal/requests"
-	"p2pbot/internal/utils"
-	"strings"
-	"time"
+    "crypto/md5"
+    "database/sql"
+    "encoding/base64"
+    "encoding/json"
+    "fmt"
+    "net/http"
+    "os"
+    "p2pbot/internal/rediscl"
+    "p2pbot/internal/requests"
+    "p2pbot/internal/utils"
+    "strings"
+    "time"
 
-	"github.com/labstack/echo/v4"
-	"github.com/teris-io/shortid"
+    "github.com/labstack/echo/v4"
+    "github.com/teris-io/shortid"
 )
 
 // Generatre order creates new invoice on cryptomus gateway.
@@ -44,11 +44,11 @@ func (contr *Controller) CreateOrder(c echo.Context) error {
         "email": u.Email,
         "order_id": orderID,
     }).Msg("Order ID generated")
-	// save order id to redis
-	ctx := rediscl.RDB.Ctx
+    // save order id to redis
+    ctx := rediscl.RDB.Ctx
     if err := rediscl.RDB.Client.Set(ctx, "order_id:"+orderID, u.ID, 2*time.Hour).Err(); err != nil {
-		return err
-	}
+        return err
+    }
     if err != nil {
         return err
     }

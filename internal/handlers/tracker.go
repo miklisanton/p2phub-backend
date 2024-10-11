@@ -1,16 +1,16 @@
 package handlers
 
 import (
-	"database/sql"
-	"fmt"
-	"net/http"
-	"p2pbot/internal/db/models"
-	"p2pbot/internal/requests"
-	"p2pbot/internal/utils"
-	"slices"
-	"strconv"
+    "database/sql"
+    "fmt"
+    "net/http"
+    "p2pbot/internal/db/models"
+    "p2pbot/internal/requests"
+    "p2pbot/internal/utils"
+    "slices"
+    "strconv"
 
-	"github.com/labstack/echo/v4"
+    "github.com/labstack/echo/v4"
 )
 
 // GetTrackers gets all trackers for a user
@@ -522,7 +522,7 @@ func (cont *Controller) GetExchanges(c echo.Context) error {
 }
 
 func (cont *Controller) TestFunc(c echo.Context) error {
-	email := c.Get("email").(string)
+    email := c.Get("email").(string)
     return c.JSON(http.StatusOK, map[string]any{
         "message": "Test",
         "email": email,

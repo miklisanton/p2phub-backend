@@ -1,21 +1,21 @@
 package main
 
 import (
-	"net/http"
-	//"p2pbot/internal/JWTConfig"
-	"p2pbot/internal/app"
-	"p2pbot/internal/db/repository"
-	"p2pbot/internal/handlers"
-	"p2pbot/internal/rediscl"
-	"p2pbot/internal/services"
-	"p2pbot/internal/utils"
-	"time"
+    "net/http"
+    //"p2pbot/internal/JWTConfig"
+    "p2pbot/internal/app"
+    "p2pbot/internal/db/repository"
+    "p2pbot/internal/handlers"
+    "p2pbot/internal/rediscl"
+    "p2pbot/internal/services"
+    "p2pbot/internal/utils"
+    "time"
     "crypto/tls"
     "log"
 
-	//echojwt "github.com/labstack/echo-jwt/v4"
-	"github.com/labstack/echo/v4"
-	echomiddleware "github.com/labstack/echo/v4/middleware"
+    //echojwt "github.com/labstack/echo-jwt/v4"
+    "github.com/labstack/echo/v4"
+    echomiddleware "github.com/labstack/echo/v4/middleware"
 )
 
 
@@ -33,8 +33,8 @@ func main() {
     trackerRepo := repository.NewTrackerRepository(DB)
     trackerService := services.NewTrackerService(trackerRepo)
 
-	binance := services.NewBinanceExchange(cfg)
-	bybit := services.NewBybitExcahnge(cfg)
+    binance := services.NewBinanceExchange(cfg)
+    bybit := services.NewBybitExcahnge(cfg)
 
     rediscl.InitRedisClient(cfg.Redis.Host, cfg.Redis.Port)
 

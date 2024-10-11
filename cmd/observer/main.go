@@ -1,15 +1,15 @@
 package main
 
 import (
-	"context"
-	"fmt"
-	"p2pbot/internal/app"
-	"p2pbot/internal/db/repository"
-	"p2pbot/internal/rabbitmq"
-	"p2pbot/internal/services"
-	"p2pbot/internal/tasks"
-	"p2pbot/internal/utils"
-	"time"
+    "context"
+    "fmt"
+    "p2pbot/internal/app"
+    "p2pbot/internal/db/repository"
+    "p2pbot/internal/rabbitmq"
+    "p2pbot/internal/services"
+    "p2pbot/internal/tasks"
+    "p2pbot/internal/utils"
+    "time"
 )
 
 func main() {

@@ -1,17 +1,17 @@
 package tasks
 
 import (
-	"context"
-	"encoding/json"
-	"fmt"
-	"log"
-	"p2pbot/internal/db/models"
-	"p2pbot/internal/rabbitmq"
-	"p2pbot/internal/services"
-	"p2pbot/internal/utils"
-	"strings"
-	"sync"
-	"time"
+    "context"
+    "encoding/json"
+    "fmt"
+    "log"
+    "p2pbot/internal/db/models"
+    "p2pbot/internal/rabbitmq"
+    "p2pbot/internal/services"
+    "p2pbot/internal/utils"
+    "strings"
+    "sync"
+    "time"
 )
 
 type AdsObserver struct {

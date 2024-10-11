@@ -1,13 +1,13 @@
 package services_test
 
 import (
-	"fmt"
-	"os"
-	"p2pbot/internal/app"
-	"p2pbot/internal/rediscl"
-	"p2pbot/internal/services"
-	"path/filepath"
-	"testing"
+    "fmt"
+    "os"
+    "p2pbot/internal/app"
+    "p2pbot/internal/rediscl"
+    "p2pbot/internal/services"
+    "path/filepath"
+    "testing"
 )
 
 var (

@@ -1,23 +1,23 @@
 package repository
 
 import (
-	"fmt"
-	"github.com/jmoiron/sqlx"
-	"p2pbot/internal/db/models"
+    "fmt"
+    "github.com/jmoiron/sqlx"
+    "p2pbot/internal/db/models"
 )
 
 type UserRepository struct {
-	db *sqlx.DB
+    db *sqlx.DB
 }
 
 func NewUserRepository(db *sqlx.DB) *UserRepository {
-	return &UserRepository{db}
+    return &UserRepository{db}
 }
 
 func (repo *UserRepository) Save(user *models.User) (int, error) {
-	if user == nil {
-		return 0, fmt.Errorf("user is nil")
-	}
+    if user == nil {
+        return 0, fmt.Errorf("user is nil")
+    }
 
 
 
@@ -78,37 +78,37 @@ func (repo *UserRepository) Update(user *models.User) error {
 }
 
 func (repo *UserRepository) GetByChatID(chatID int64) (*models.User, error) {
-	user := &models.User{}
+    user := &models.User{}
 
-	query := `SELECT * FROM users WHERE chat_id = $1`
-	err := repo.db.Get(user, query, chatID)
-	if err != nil {
-		return nil, err
-	}
+    query := `SELECT * FROM users WHERE chat_id = $1`
+    err := repo.db.Get(user, query, chatID)
+    if err != nil {
+        return nil, err
+    }
 
-	return user, nil
+    return user, nil
 }
 
 func (repo *UserRepository) GetByID(ID int) (*models.User, error) {
-	user := &models.User{}
+    user := &models.User{}
 
-	query := `SELECT * FROM users WHERE id = $1`
-	err := repo.db.Get(user, query, ID)
-	if err != nil {
-		return nil, err
-	}
+    query := `SELECT * FROM users WHERE id = $1`
+    err := repo.db.Get(user, query, ID)
+    if err != nil {
+        return nil, err
+    }
 
-	return user, nil
+    return user, nil
 }
 
 func (repo *UserRepository) GetByEmail(email string) (*models.User, error) {
-	user := &models.User{}
+    user := &models.User{}
 
-	query := `SELECT * FROM users WHERE email = $1`
-	err := repo.db.Get(user, query, email)
-	if err != nil {
-		return nil, err
-	}
+    query := `SELECT * FROM users WHERE email = $1`
+    err := repo.db.Get(user, query, email)
+    if err != nil {
+        return nil, err
+    }
 
-	return user, nil
+    return user, nil
 }
