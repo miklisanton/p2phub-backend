@@ -1,16 +1,16 @@
 package handlers
 
 import (
-    "database/sql"
-    "fmt"
-    "net/http"
-    "p2pbot/internal/db/models"
-    "p2pbot/internal/requests"
-    "p2pbot/internal/utils"
-    "slices"
-    "strconv"
+	"database/sql"
+	"fmt"
+	"net/http"
+	"p2pbot/internal/db/models"
+	"p2pbot/internal/requests"
+	"p2pbot/internal/utils"
+	"slices"
+	"strconv"
 
-    "github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4"
 )
 
 // GetTrackers gets all trackers for a user
@@ -18,513 +18,510 @@ import (
 // returns 10 trackers per page
 
 func (contr *Controller) GetTrackers(c echo.Context) error {
-    email := c.Get("email").(string)
-    u, err := contr.userService.GetUserByEmail(email)
-    if err == sql.ErrNoRows {
-        return c.JSON(http.StatusNotFound, map[string]any{
-            "message": "User not found",
-            "errors": map[string]any{
-                "user": "not found",
-            },
-        })
-    }
-    if err != nil {
-        return err
-    }
-    // Get page
-    page := c.QueryParam("page")
-    if page == "" {
-        page = "1"
-    }
-    p, err := strconv.Atoi(page)
-    if err != nil {
-        return err
-    }
-    if p < 1 {
-        p = 1
-    }
-    // Get limit
-    limit := c.QueryParam("limit")
-    if limit == "" {
-        limit = "10"
-    }
-    l, err := strconv.Atoi(limit)
-    if err != nil {
-        return err
-    }
-    if l < 1 {
-        l = 10
-    }
-    
-    utils.Logger.Info().Fields(map[string]interface{}{
-        "email": email,
-        "page": p,
-    }).Msg("Trackers requested")
+	email := c.Get("email").(string)
+	u, err := contr.userService.GetUserByEmail(email)
+	if err == sql.ErrNoRows {
+		return c.JSON(http.StatusNotFound, map[string]any{
+			"message": "User not found",
+			"errors": map[string]any{
+				"user": "not found",
+			},
+		})
+	}
+	if err != nil {
+		return err
+	}
+	// Get page
+	page := c.QueryParam("page")
+	if page == "" {
+		page = "1"
+	}
+	p, err := strconv.Atoi(page)
+	if err != nil {
+		return err
+	}
+	if p < 1 {
+		p = 1
+	}
+	// Get limit
+	limit := c.QueryParam("limit")
+	if limit == "" {
+		limit = "10"
+	}
+	l, err := strconv.Atoi(limit)
+	if err != nil {
+		return err
+	}
+	if l < 1 {
+		l = 10
+	}
 
-    trackers, err := contr.trackerService.GetTrackersByUserId(u.ID)
-    if err != nil {
-        return err
-    }
+	utils.Logger.Info().Fields(map[string]interface{}{
+		"email": email,
+		"page":  p,
+	}).Msg("Trackers requested")
 
-    if len(trackers) == 0 {
-        return c.JSON(http.StatusOK, map[string]any{
-            "message": "Trackers",
-            "trackers": make([]models.Tracker, 0),
-            "hasMore": false,
-        })
-    }
+	trackers, err := contr.trackerService.GetTrackersByUserId(u.ID)
+	if err != nil {
+		return err
+	}
 
-    if (p - 1) * l >= len(trackers) {
-        return c.JSON(http.StatusNotFound, map[string]any{
-            "message": "No trackers found",
-            "errors": map[string]any{
-                "trackers": "not found",
-            },
-        })
-    }
+	if len(trackers) == 0 {
+		return c.JSON(http.StatusOK, map[string]any{
+			"message":  "Trackers",
+			"trackers": make([]models.Tracker, 0),
+			"hasMore":  false,
+		})
+	}
 
-    hasMore := p * l < len(trackers)
+	if (p-1)*l >= len(trackers) {
+		return c.JSON(http.StatusNotFound, map[string]any{
+			"message": "No trackers found",
+			"errors": map[string]any{
+				"trackers": "not found",
+			},
+		})
+	}
 
-    return c.JSON(http.StatusOK, map[string]any{
-        "message": fmt.Sprintf("Trackers for user %s", email),
-        "trackers": trackers[(p - 1 ) * l : min(p * l, len(trackers))],  
-        "hasMore": hasMore,
-    })
+	hasMore := p*l < len(trackers)
+
+	return c.JSON(http.StatusOK, map[string]any{
+		"message":  fmt.Sprintf("Trackers for user %s", email),
+		"trackers": trackers[(p-1)*l : min(p*l, len(trackers))],
+		"hasMore":  hasMore,
+	})
 }
 
 func (contr *Controller) GetTracker(c echo.Context) error {
-    email := c.Get("email").(string)
-    u, err := contr.userService.GetUserByEmail(email)
-    if err == sql.ErrNoRows {
-        return c.JSON(http.StatusNotFound, map[string]any{
-            "message": "User not found",
-            "errors": map[string]any{
-                "user": "not found",
-            },
-        })
-    }
-    if err != nil {
-        return err
-    }
+	email := c.Get("email").(string)
+	u, err := contr.userService.GetUserByEmail(email)
+	if err == sql.ErrNoRows {
+		return c.JSON(http.StatusNotFound, map[string]any{
+			"message": "User not found",
+			"errors": map[string]any{
+				"user": "not found",
+			},
+		})
+	}
+	if err != nil {
+		return err
+	}
 
-    trackerID, err := strconv.Atoi(c.Param("id"))
-    if err != nil {
-        return c.JSON(http.StatusBadRequest, map[string]any{
-            "message": "Invalid tracker ID",
-            "errors": map[string]any{
-                "tracker": "invalid ID",
-            },
-        })
-    }
-    tracker, err := contr.trackerService.GetTrackerById(trackerID)
-    if err != nil {
-        return c.JSON(http.StatusNotFound, map[string]any{
-            "message": "Tracker not found",
-            "errors": map[string]any{
-                "tracker": "not found",
-            },
-        })
-    }
-    // Check if tracker created by user
-    if tracker.UserID != u.ID {
-        return c.JSON(http.StatusForbidden, map[string]any{
-            "message": "Forbidden",
-            "errors": map[string]any{
-                "tracker": "not found",
-            },
-        })
-    }
-    return c.JSON(http.StatusFound, map[string]any{
-        "message": "Tracker found",
-        "tracker": tracker,
-    })
+	trackerID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]any{
+			"message": "Invalid tracker ID",
+			"errors": map[string]any{
+				"tracker": "invalid ID",
+			},
+		})
+	}
+	tracker, err := contr.trackerService.GetTrackerById(trackerID)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, map[string]any{
+			"message": "Tracker not found",
+			"errors": map[string]any{
+				"tracker": "not found",
+			},
+		})
+	}
+	// Check if tracker created by user
+	if tracker.UserID != u.ID {
+		return c.JSON(http.StatusForbidden, map[string]any{
+			"message": "Forbidden",
+			"errors": map[string]any{
+				"tracker": "not found",
+			},
+		})
+	}
+	return c.JSON(http.StatusFound, map[string]any{
+		"message": "Tracker found",
+		"tracker": tracker,
+	})
 }
 
 func (contr *Controller) CreateTracker(c echo.Context) error {
-    email := c.Get("email").(string)
-    u, err := contr.userService.GetUserByEmail(email)
-    if err == sql.ErrNoRows {
-        return c.JSON(http.StatusNotFound, map[string]any{
-            "message": "User not found",
-            "errors": map[string]any{
-                "user": "not found",
-            },
-        })
-    }
+	email := c.Get("email").(string)
+	u, err := contr.userService.GetUserByEmail(email)
+	if err == sql.ErrNoRows {
+		return c.JSON(http.StatusNotFound, map[string]any{
+			"message": "User not found",
+			"errors": map[string]any{
+				"user": "not found",
+			},
+		})
+	}
 
-    if err != nil {
-        return err
-    }
+	if err != nil {
+		return err
+	}
 
-    trackerReq := new(requests.TrackerRequest)
-    if err := c.Bind(trackerReq); err != nil {
-        return err
-    }
+	trackerReq := new(requests.TrackerRequest)
+	if err := c.Bind(trackerReq); err != nil {
+		return err
+	}
 
-    // Create tracker entity and validate its fields
-    if trackerReq.Notify == nil {
-        trackerReq.Notify = new(bool)
-        *trackerReq.Notify = false
-    }
-    tracker := &models.Tracker{
-        UserID: u.ID,
-        Exchange: trackerReq.Exchange,
-        Currency: trackerReq.Currency,
-        Side: trackerReq.Side,
-        Username: trackerReq.Username,
-        Notify: *trackerReq.Notify,
-        Payment: make([]*models.PaymentMethod, 0),
-    }
-    // If no payments method provided in request, treat as aggregated tracker
-    if len(trackerReq.Payment) == 0 {
-        tracker.IsAggregated = true
-    }
-    // Recieve payment methods from request and add them to tracker
-    for _, p := range trackerReq.Payment {
-        tracker.Payment = append(tracker.Payment, &models.PaymentMethod{
-            Id: p,
-        })
-    }
+	// Create tracker entity and validate its fields
+	if trackerReq.Notify == nil {
+		trackerReq.Notify = new(bool)
+		*trackerReq.Notify = false
+	}
+	tracker := &models.Tracker{
+		UserID:   u.ID,
+		Exchange: trackerReq.Exchange,
+		Currency: trackerReq.Currency,
+		Side:     trackerReq.Side,
+		Username: trackerReq.Username,
+		Notify:   *trackerReq.Notify,
+		Payment:  make([]*models.PaymentMethod, 0),
+	}
+	// If no payments method provided in request, treat as aggregated tracker
+	if len(trackerReq.Payment) == 0 {
+		tracker.IsAggregated = true
+	}
+	// Recieve payment methods from request and add them to tracker
+	for _, p := range trackerReq.Payment {
+		tracker.Payment = append(tracker.Payment, &models.PaymentMethod{
+			Id: p,
+		})
+	}
 
-    if err := contr.trackerService.ValidateTracker(tracker, false); err != nil {
-        return c.JSON(http.StatusBadRequest, map[string]any{
-            "message": "Validation error",
-            "errors": map[string]any{
-                "invalid_param": err.Error(),
-            },
-        })
-    }
-    // Check if exchange is supported
-    exchange, ok := contr.exchanges[tracker.Exchange]
-    if !ok {
-        return c.JSON(http.StatusBadRequest, map[string]any{
-            "message": "exchange not found",
-            "errors": map[string]any{
-                "exchange": fmt.Sprintf("%s not supported", tracker.Exchange),
-            },
-        })
-    }
-    
-    ads, err := exchange.GetAdsByName(tracker.Currency,
-                                        tracker.Side,
-                                        tracker.Username,
-                                        trackerReq.Payment)
-    if err != nil {
-        return c.JSON(http.StatusNotFound, map[string]any{
-            "message": "error getting ads",
-            "errors": map[string]any{
-                exchange.GetName(): err.Error(),
-            },
-        })
-    }
+	if err := contr.trackerService.ValidateTracker(tracker, false); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]any{
+			"message": "Validation error",
+			"errors": map[string]any{
+				"invalid_param": err.Error(),
+			},
+		})
+	}
+	// Check if exchange is supported
+	exchange, ok := contr.exchanges[tracker.Exchange]
+	if !ok {
+		return c.JSON(http.StatusBadRequest, map[string]any{
+			"message": "exchange not found",
+			"errors": map[string]any{
+				"exchange": fmt.Sprintf("%s not supported", tracker.Exchange),
+			},
+		})
+	}
 
-    utils.Logger.LogInfo().Fields(map[string]interface{}{
-        "email": email,
-        exchange.GetName(): ads,
-    }).Msg("Ads found")
+	ads, err := exchange.GetAdsByName(tracker.Currency,
+		tracker.Side,
+		tracker.Username,
+		trackerReq.Payment)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, map[string]any{
+			"message": "error getting ads",
+			"errors": map[string]any{
+				exchange.GetName(): err.Error(),
+			},
+		})
+	}
 
-    // needed for retreiving payment methods names from ids
-    pMethods, err := exchange.GetCachedPaymentMethods(tracker.Currency)
-    if err != nil {
-        return err
-    }
-    createdTrackers := make([]models.Tracker, 0)
-    for _, adv := range ads {
-        // Set price
-        tracker.Price = adv.GetPrice()
-        // Set payment methods
-        var pmStrings []string
-        if tracker.IsAggregated {
-            // Recieve payment methods from ad if not provided in request(only for non-aggregated trackers)
-            pmStrings = adv.GetPaymentMethods() 
-        } else {
-            // Recieve payment methods from request if provided
-            pmStrings = trackerReq.Payment
-        }
-        pms := make([]*models.PaymentMethod, 0)
-        for _, p := range pmStrings {
-            // Get name from id and add to tracker
-            name, err := utils.GetPMethodName(pMethods, p)
-            if err != nil {
-                return c.JSON(http.StatusBadRequest, map[string]any{
-                    "message": "payment method not found",
-                    "errors": map[string]any{
-                        "payment_method": fmt.Sprintf("%s not found", p),
-                    },
-                })
-            }
-            pms = append(pms, &models.PaymentMethod{
-                Id: p,
-                Name: name,
-            })
-        }
-        tracker.Payment = pms
-        // Add to DB
-        if err = contr.trackerService.CreateTracker(tracker); err != nil {
-            return err
-        }
-        // Add to response
-        createdTrackers = append(createdTrackers, *tracker)
-        // Log
-        utils.Logger.Debug().Fields(map[string]interface{}{
-            "tracker": tracker,
-        }).Msg("Tracker created")
-        // Reset tracker ID
-        tracker.ID = 0
-    }
+	utils.Logger.LogInfo().Fields(map[string]interface{}{
+		"email":            email,
+		exchange.GetName(): ads,
+	}).Msg("Ads found")
 
-    return c.JSON(http.StatusCreated, map[string]any{
-        "message": "Trackers created",
-        "trackers": createdTrackers,
-    })
+	// needed for retreiving payment methods names from ids
+	pMethods, err := exchange.GetCachedPaymentMethods(tracker.Currency)
+	if err != nil {
+		return err
+	}
+	createdTrackers := make([]models.Tracker, 0)
+	for _, adv := range ads {
+		// Set price
+		tracker.Price = adv.GetPrice()
+		// Set payment methods
+		var pmStrings []string
+		if tracker.IsAggregated {
+			// Recieve payment methods from ad if not provided in request(only for non-aggregated trackers)
+			pmStrings = adv.GetPaymentMethods()
+		} else {
+			// Recieve payment methods from request if provided
+			pmStrings = trackerReq.Payment
+		}
+		pms := make([]*models.PaymentMethod, 0)
+		for _, p := range pmStrings {
+			// Get name from id and add to tracker
+			name, err := utils.GetPMethodName(pMethods, p)
+			if err != nil {
+				return c.JSON(http.StatusBadRequest, map[string]any{
+					"message": "payment method not found",
+					"errors": map[string]any{
+						"payment_method": fmt.Sprintf("%s not found", p),
+					},
+				})
+			}
+			pms = append(pms, &models.PaymentMethod{
+				Id:   p,
+				Name: name,
+			})
+		}
+		tracker.Payment = pms
+		// Add to DB
+		if err = contr.trackerService.CreateTracker(tracker); err != nil {
+			return err
+		}
+		// Add to response
+		createdTrackers = append(createdTrackers, *tracker)
+		// Log
+		utils.Logger.Debug().Fields(map[string]interface{}{
+			"tracker": tracker,
+		}).Msg("Tracker created")
+		// Reset tracker ID
+		tracker.ID = 0
+	}
+
+	return c.JSON(http.StatusCreated, map[string]any{
+		"message":  "Trackers created",
+		"trackers": createdTrackers,
+	})
 }
 
 func (contr *Controller) DeleteTracker(c echo.Context) error {
-    email := c.Get("email").(string)
-    u, err := contr.userService.GetUserByEmail(email)
-    if err == sql.ErrNoRows {
-        return c.JSON(http.StatusNotFound, map[string]any{
-            "message": "User not found",
-            "errors": map[string]any{
-                "user": "not found",
-            },
-        })
-    }
-    if err != nil {
-        return err
-    }
+	email := c.Get("email").(string)
+	u, err := contr.userService.GetUserByEmail(email)
+	if err == sql.ErrNoRows {
+		return c.JSON(http.StatusNotFound, map[string]any{
+			"message": "User not found",
+			"errors": map[string]any{
+				"user": "not found",
+			},
+		})
+	}
+	if err != nil {
+		return err
+	}
 
-    trackerID, err := strconv.Atoi(c.Param("id"))
-    if err != nil {
-        return c.JSON(http.StatusBadRequest, map[string]any{
-            "message": "Invalid tracker ID",
-            "errors": map[string]any{
-                "tracker": "invalid ID",
-            },
-        })
-    }
-    tracker, err := contr.trackerService.GetTrackerById(trackerID)
-    if err != nil {
-        return c.JSON(http.StatusNotFound, map[string]any{
-            "message": "Tracker not found",
-            "errors": map[string]any{
-                "tracker": "not found",
-            },
-        })
-    }
-    // Check if tracker created by user
-    if tracker.UserID != u.ID {
-        return c.JSON(http.StatusForbidden, map[string]any{
-            "message": "Forbidden",
-            "errors": map[string]any{
-                "tracker": "not found",
-            },
-        })
-    }
-    // Delete tracker from database
-    err = contr.trackerService.DeleteTracker(trackerID)
-    if err != nil {
-        return err
-    }
-    return c.JSON(http.StatusOK, map[string]any{
-        "message": "Tracker deleted",
-        "tracker": tracker.ID,
-    })
+	trackerID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]any{
+			"message": "Invalid tracker ID",
+			"errors": map[string]any{
+				"tracker": "invalid ID",
+			},
+		})
+	}
+	tracker, err := contr.trackerService.GetTrackerById(trackerID)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, map[string]any{
+			"message": "Tracker not found",
+			"errors": map[string]any{
+				"tracker": "not found",
+			},
+		})
+	}
+	// Check if tracker created by user
+	if tracker.UserID != u.ID {
+		return c.JSON(http.StatusForbidden, map[string]any{
+			"message": "Forbidden",
+			"errors": map[string]any{
+				"tracker": "not found",
+			},
+		})
+	}
+	// Delete tracker from database
+	err = contr.trackerService.DeleteTracker(trackerID)
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, map[string]any{
+		"message": "Tracker deleted",
+		"tracker": tracker.ID,
+	})
 }
 
 func (contr *Controller) SetNotifyTracker(c echo.Context) error {
-    email := c.Get("email").(string)
-    u, err := contr.userService.GetUserByEmail(email)
-    if err == sql.ErrNoRows {
-        return c.JSON(http.StatusNotFound, map[string]any{
-            "message": "User not found",
-            "errors": map[string]any{
-                "user": "not found",
-            },
-        })
-    }
-    if err != nil {
-        return err
-    }
+	email := c.Get("email").(string)
+	u, err := contr.userService.GetUserByEmail(email)
+	if err == sql.ErrNoRows {
+		return c.JSON(http.StatusNotFound, map[string]any{
+			"message": "User not found",
+			"errors": map[string]any{
+				"user": "not found",
+			},
+		})
+	}
+	if err != nil {
+		return err
+	}
 
-    trackerID, err := strconv.Atoi(c.Param("id"))
-    if err != nil {
-        return c.JSON(http.StatusBadRequest, map[string]any{
-            "message": "Invalid tracker ID",
-            "errors": map[string]any{
-                "tracker": "invalid ID",
-            },
-        })
-    }
-    tracker, err := contr.trackerService.GetTrackerById(trackerID)
-    if err != nil {
-        return c.JSON(http.StatusNotFound, map[string]any{
-            "message": "Tracker not found",
-            "errors": map[string]any{
-                "tracker": "not found",
-            },
-        })
-    }
-    // Check if tracker created by user
-    if tracker.UserID != u.ID {
-        return c.JSON(http.StatusForbidden, map[string]any{
-            "message": "Forbidden",
-            "errors": map[string]any{
-                "tracker": "not found",
-            },
-        })
-    }
+	trackerID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]any{
+			"message": "Invalid tracker ID",
+			"errors": map[string]any{
+				"tracker": "invalid ID",
+			},
+		})
+	}
+	tracker, err := contr.trackerService.GetTrackerById(trackerID)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, map[string]any{
+			"message": "Tracker not found",
+			"errors": map[string]any{
+				"tracker": "not found",
+			},
+		})
+	}
+	// Check if tracker created by user
+	if tracker.UserID != u.ID {
+		return c.JSON(http.StatusForbidden, map[string]any{
+			"message": "Forbidden",
+			"errors": map[string]any{
+				"tracker": "not found",
+			},
+		})
+	}
 
-    trackerReq := new(requests.TrackerRequest)
-    if err := c.Bind(trackerReq); err != nil {
-        return err
-    }
+	trackerReq := new(requests.TrackerRequest)
+	if err := c.Bind(trackerReq); err != nil {
+		return err
+	}
 
-    // Update tracker
-    if trackerReq.Notify != nil {
-        tracker.Notify = *trackerReq.Notify
-    }
+	// Update tracker
+	if trackerReq.Notify != nil {
+		tracker.Notify = *trackerReq.Notify
+	}
 
-    err = contr.trackerService.CreateTracker(tracker)
-    if err != nil {
-        return err
-    }
-    return c.JSON(http.StatusCreated, map[string]any{
-        "message": "Tracker updated",
-        "trackers": tracker,
-    })
+	err = contr.trackerService.CreateTracker(tracker)
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusCreated, map[string]any{
+		"message":  "Tracker updated",
+		"trackers": tracker,
+	})
 }
 
-
 // Options related endpoints
-func (contr *Controller) GetPaymentMethods (c echo.Context) error {
-    email := c.Get("email").(string)
-    // Check query parameters
-    exchange := c.QueryParam("exchange")
-    if exchange == "" {
-        return c.JSON(http.StatusBadRequest, map[string]any{
-            "message": "exchange not found",
-            "errors": map[string]any{
-                "exchange": "query parameter not provided",
-            },
-                
-        })
-    }
-    exch, ok := contr.exchanges[exchange]
-    if !ok {
-        return c.JSON(http.StatusBadRequest, map[string]any{
-            "message": "exchange not found",
-            "errors": map[string]any{
-                "exchange": fmt.Sprintf("%s not supported", exchange),
-            },
-        })
-    }
+func (contr *Controller) GetPaymentMethods(c echo.Context) error {
+	email := c.Get("email").(string)
+	// Check query parameters
+	exchange := c.QueryParam("exchange")
+	if exchange == "" {
+		return c.JSON(http.StatusBadRequest, map[string]any{
+			"message": "exchange not found",
+			"errors": map[string]any{
+				"exchange": "query parameter not provided",
+			},
+		})
+	}
+	exch, ok := contr.exchanges[exchange]
+	if !ok {
+		return c.JSON(http.StatusBadRequest, map[string]any{
+			"message": "exchange not found",
+			"errors": map[string]any{
+				"exchange": fmt.Sprintf("%s not supported", exchange),
+			},
+		})
+	}
 
-    currency := c.QueryParam("currency")
-    if currency == "" {
-        return c.JSON(http.StatusBadRequest, map[string]any{
-            "message": "currency not found",
-            "errors": map[string]any{
-                "currency": "query parameter not provided",
-            },
-        })
-    }
+	currency := c.QueryParam("currency")
+	if currency == "" {
+		return c.JSON(http.StatusBadRequest, map[string]any{
+			"message": "currency not found",
+			"errors": map[string]any{
+				"currency": "query parameter not provided",
+			},
+		})
+	}
 
-    supportedCurrencies, err := exch.GetCachedCurrencies()
-    if err != nil {
-        return err
-    }
-    if !utils.Contains(supportedCurrencies, currency) {
-        return c.JSON(http.StatusBadRequest, map[string]any{
-            "message": "currency not found",
-            "errors": map[string]any{
-                "currency": fmt.Sprintf("%s not supported", currency),
-            },
-        })
-    }
-    out, err := exch.GetCachedPaymentMethods(currency)
-    if err != nil {
-        return err
-    }
+	supportedCurrencies, err := exch.GetCachedCurrencies()
+	if err != nil {
+		return err
+	}
+	if !utils.Contains(supportedCurrencies, currency) {
+		return c.JSON(http.StatusBadRequest, map[string]any{
+			"message": "currency not found",
+			"errors": map[string]any{
+				"currency": fmt.Sprintf("%s not supported", currency),
+			},
+		})
+	}
+	out, err := exch.GetCachedPaymentMethods(currency)
+	if err != nil {
+		return err
+	}
 
-    utils.Logger.LogInfo().Fields(map[string]interface{}{
-        "email": email,
-        "exchange": exchange,
-        "currency": currency,
-        "options": out,
-    }).Msg("Payment methods requested")
+	utils.Logger.LogInfo().Fields(map[string]interface{}{
+		"email":    email,
+		"exchange": exchange,
+		"currency": currency,
+		"options":  out,
+	}).Msg("Payment methods requested")
 
-    return c.JSON(http.StatusOK, map[string]any{
-        "message": "Form options",
-        "options": out,
-    })
+	return c.JSON(http.StatusOK, map[string]any{
+		"message": "Form options",
+		"options": out,
+	})
 }
 
 func (contr *Controller) GetCurrencies(c echo.Context) error {
-    email := c.Get("email").(string)
-    // Check query parameters
-    exchange := c.QueryParam("exchange")
-    if exchange == "" {
-        return c.JSON(http.StatusBadRequest, map[string]any{
-            "message": "exchange not found",
-            "errors": map[string]any{
-                "exchange": "query parameter not provided",
-            },
-                
-        })
-    }
-    exch, ok := contr.exchanges[exchange]
-    if !ok {
-        return c.JSON(http.StatusBadRequest, map[string]any{
-            "message": "exchange not found",
-            "errors": map[string]any{
-                "exchange": fmt.Sprintf("%s not supported", exchange),
-            },
-        })
-    }
+	email := c.Get("email").(string)
+	// Check query parameters
+	exchange := c.QueryParam("exchange")
+	if exchange == "" {
+		return c.JSON(http.StatusBadRequest, map[string]any{
+			"message": "exchange not found",
+			"errors": map[string]any{
+				"exchange": "query parameter not provided",
+			},
+		})
+	}
+	exch, ok := contr.exchanges[exchange]
+	if !ok {
+		return c.JSON(http.StatusBadRequest, map[string]any{
+			"message": "exchange not found",
+			"errors": map[string]any{
+				"exchange": fmt.Sprintf("%s not supported", exchange),
+			},
+		})
+	}
 
-    out, err := exch.GetCachedCurrencies()
+	out, err := exch.GetCachedCurrencies()
 
-    if err != nil {
-        return err
-    }
-    // Sort alphabetically
-    slices.Sort(out)
+	if err != nil {
+		return err
+	}
+	// Sort alphabetically
+	slices.Sort(out)
 
-    utils.Logger.LogInfo().Fields(map[string]interface{}{
-        "email": email,
-        "exchange": exchange,
-        "options": out,
-    }).Msg("Currencies requested")
+	utils.Logger.LogInfo().Fields(map[string]interface{}{
+		"email":    email,
+		"exchange": exchange,
+		"options":  out,
+	}).Msg("Currencies requested")
 
-    return c.JSON(http.StatusOK, map[string]any{
-        "message": "Currencies",
-        "options": out,
-    })
+	return c.JSON(http.StatusOK, map[string]any{
+		"message": "Currencies",
+		"options": out,
+	})
 }
 
 func (cont *Controller) GetExchanges(c echo.Context) error {
-    email := c.Get("email").(string)
-    out := make([]string, 0)
-    for k := range cont.exchanges {
-        out = append(out, k)
-    }
+	email := c.Get("email").(string)
+	out := make([]string, 0)
+	for k := range cont.exchanges {
+		out = append(out, k)
+	}
 
-    utils.Logger.LogInfo().Fields(map[string]interface{}{
-        "email": email,
-        "exchanges": out,
-    }).Msg("Exchanges requested")
+	utils.Logger.LogInfo().Fields(map[string]interface{}{
+		"email":     email,
+		"exchanges": out,
+	}).Msg("Exchanges requested")
 
-    return c.JSON(http.StatusOK, map[string]any{
-        "message": "Exchanges",
-        "exchanges": out,
-    })
+	return c.JSON(http.StatusOK, map[string]any{
+		"message":   "Exchanges",
+		"exchanges": out,
+	})
 }
 
 func (cont *Controller) TestFunc(c echo.Context) error {
-    email := c.Get("email").(string)
-    return c.JSON(http.StatusOK, map[string]any{
-        "message": "Test",
-        "email": email,
-    })
+	email := c.Get("email").(string)
+	return c.JSON(http.StatusOK, map[string]any{
+		"message": "Test",
+		"email":   email,
+	})
 }

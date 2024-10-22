@@ -1,66 +1,66 @@
 package repository
 
 import (
-    "testing"
-    "p2pbot/internal/app"
-    "github.com/jmoiron/sqlx"
-    "fmt"
-    "os"
-    "path/filepath"
+	"fmt"
+	"github.com/jmoiron/sqlx"
+	"os"
+	"p2pbot/internal/app"
+	"path/filepath"
+	"testing"
 )
 
 var (
-    DB *sqlx.DB
-    userRepo *UserRepository
-    trackerRepo *TrackerRepository
+	DB          *sqlx.DB
+	userRepo    *UserRepository
+	trackerRepo *TrackerRepository
 )
 
 func findProjectRoot() (string, error) {
-    // Get the current working directory of the test
-    dir, err := os.Getwd()
-    if err != nil {
-        return "", err
-    }
+	// Get the current working directory of the test
+	dir, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
 
-    // Traverse upwards to find the project root (where .env file is located)
-    for {
-        if _, err := os.Stat(filepath.Join(dir, ".env")); os.IsNotExist(err) {
-            parent := filepath.Dir(dir)
-            if parent == dir {
-                // Reached the root of the filesystem, and .env wasn't found
-                return "", os.ErrNotExist
-            }
-            dir = parent
-        } else {
-            return dir, nil
-        }
-    }
+	// Traverse upwards to find the project root (where .env file is located)
+	for {
+		if _, err := os.Stat(filepath.Join(dir, ".env")); os.IsNotExist(err) {
+			parent := filepath.Dir(dir)
+			if parent == dir {
+				// Reached the root of the filesystem, and .env wasn't found
+				return "", os.ErrNotExist
+			}
+			dir = parent
+		} else {
+			return dir, nil
+		}
+	}
 }
 
 func TestMain(m *testing.M) {
-    root, err := findProjectRoot()
-    fmt.Println("Root: ", root)
-    if err != nil {
-        panic("Error finding project root: " + err.Error())
-    }
+	root, err := findProjectRoot()
+	fmt.Println("Root: ", root)
+	if err != nil {
+		panic("Error finding project root: " + err.Error())
+	}
 
-    err = os.Chdir(root)
-    if err != nil {
-        panic(err)
-    }
+	err = os.Chdir(root)
+	if err != nil {
+		panic(err)
+	}
 
-    DB, _, err := app.Init()
-    if err != nil {
-        panic(err)
-    }
-    userRepo = NewUserRepository(DB)
-    trackerRepo = NewTrackerRepository(DB)
+	DB, _, err := app.Init()
+	if err != nil {
+		panic(err)
+	}
+	userRepo = NewUserRepository(DB)
+	trackerRepo = NewTrackerRepository(DB)
 
-    code := m.Run()
+	code := m.Run()
 
-    //DB.MustExec("DELETE FROM users");
-    
-    os.Exit(code)
+	//DB.MustExec("DELETE FROM users");
+
+	os.Exit(code)
 }
 
 // User tests
@@ -217,11 +217,10 @@ func TestMain(m *testing.M) {
 //    t.Logf("Outbided flag updated")
 //}
 
-
 func TestGetIdsByCurrency(t *testing.T) {
-    ids, err := trackerRepo.GetIdsByCurrency("binance")
-    if err != nil {
-        t.Fatalf("error getting ids: %v", err)
-    }
-    fmt.Println("IDs: ", ids)
+	ids, err := trackerRepo.GetIdsByCurrency("binance")
+	if err != nil {
+		t.Fatalf("error getting ids: %v", err)
+	}
+	fmt.Println("IDs: ", ids)
 }
