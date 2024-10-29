@@ -105,7 +105,7 @@ func main() {
 	privateGroup.GET("/test", controller.TestFunc)
 	// Subscription routes
 	privateGroup.POST("/subscriptions", controller.CreateOrder)
-	publicGroup.POST("/subscriptions/webhook", controller.ConfirmOrder)
+	publicGroup.POST("/subscriptions/callback", controller.ConfirmOrder)
 	privateGroup.GET("/subscriptions", controller.GetSubscription)
 
 	cert, err := tls.LoadX509KeyPair(cfg.Website.CertFile, cfg.Website.KeyFile)
