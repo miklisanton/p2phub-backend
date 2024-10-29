@@ -31,6 +31,8 @@ func main() {
 	userService := services.NewUserService(userRepo)
 	trackerRepo := repository.NewTrackerRepository(DB)
 	trackerService := services.NewTrackerService(trackerRepo)
+	subscriptionRepo := repository.NewSubscriptionRepository(DB)
+	subscriptionService := services.NewSubscriptionService(subscriptionRepo)
 
 	binance := services.NewBinanceExchange(cfg)
 	bybit := services.NewBybitExcahnge(cfg)
@@ -40,6 +42,7 @@ func main() {
 	controller := handlers.NewController(
 		userService,
 		trackerService,
+		subscriptionService,
 		map[string]services.ExchangeI{
 			"binance": binance,
 			"bybit":   bybit,
@@ -103,6 +106,7 @@ func main() {
 	// Subscription routes
 	privateGroup.POST("/subscriptions", controller.CreateOrder)
 	publicGroup.POST("/subscriptions/webhook", controller.ConfirmOrder)
+	privateGroup.GET("/subscriptions", controller.GetSubscription)
 
 	cert, err := tls.LoadX509KeyPair(cfg.Website.CertFile, cfg.Website.KeyFile)
 	if err != nil {

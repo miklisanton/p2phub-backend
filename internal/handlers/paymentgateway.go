@@ -9,9 +9,11 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"p2pbot/internal/db/models"
 	"p2pbot/internal/rediscl"
 	"p2pbot/internal/requests"
 	"p2pbot/internal/utils"
+	"strconv"
 	"strings"
 	"time"
 
@@ -136,12 +138,11 @@ func (contr *Controller) ConfirmOrder(c echo.Context) error {
 		return err
 	}
 	// Manually escape forward slashes
-	escapedData := strings.ReplaceAll(string(jsonData), "/", "\\/")
-	// Encode to base64
-	var base64Req []byte
-	base64.StdEncoding.Encode(base64Req, []byte(escapedData))
+	// escapedData := strings.ReplaceAll(string(jsonData), "/", "\\/")
+	// Create signature and add it to request headers
+	base64Req := base64.StdEncoding.EncodeToString(jsonData)
+	hash := md5.Sum([]byte(base64Req + os.Getenv("GATEWAY_API_KEY")))
 	// Compare hash
-	hash := md5.Sum(append(base64Req, []byte(os.Getenv("GATEWAY_API_KEY"))...))
 	if fmt.Sprintf("%x", hash) != confirmReq.Signature {
 		utils.Logger.LogError().Fields(map[string]interface{}{
 			"order_id": confirmReq.OrderID,
@@ -174,10 +175,53 @@ func (contr *Controller) ConfirmOrder(c echo.Context) error {
 		"uuid":     confirmReq.Uuid,
 		"status":   confirmReq.Status,
 	}).Msg("Payment confirmed")
-	// TODO: implement subscription update
+	// Update user subscription
+	uid, err := strconv.Atoi(userID)
+	if err != nil {
+		return err
+	}
+	subscription, err := contr.subscriptionsService.GetByUserId(uid)
+	if err != nil {
+		return err
+	}
+
+	if subscription == nil {
+		err := contr.subscriptionsService.Create(&models.Subscription{
+			User_id: uid,
+		})
+		if err != nil {
+			return err
+		}
+	} else {
+		contr.subscriptionsService.AddMonth(subscription)
+	}
+
 	return c.JSON(http.StatusOK, map[string]any{
-		"message":  "Payment confirmed",
+		"message":  "Subscription updated",
 		"order_id": confirmReq.OrderID,
-		"uuid":     confirmReq.Uuid,
+	})
+}
+
+func (contr *Controller) GetSubscription(c echo.Context) error {
+	email := c.Get("email").(string)
+	u, err := contr.userService.GetUserByEmail(email)
+	if err == sql.ErrNoRows {
+		return c.JSON(http.StatusNotFound, map[string]any{
+			"message": "User not found",
+			"errors": map[string]any{
+				"user": "not found",
+			},
+		})
+	}
+	if err != nil {
+		return err
+	}
+	// Get user subscription
+	subscription, err := contr.subscriptionsService.GetByUserId(u.ID)
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, map[string]any{
+		"subscription": subscription,
 	})
 }
