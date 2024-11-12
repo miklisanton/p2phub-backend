@@ -14,5 +14,5 @@ type ConfirmRequest struct {
 	OrderID   string `json:"order_id"`
 	Uuid      string `json:"uuid"`
 	Status    string `json:"status"`
-	Signature string `json:"sign"`
+	Signature string `json:"sign, omitempty"`
 }

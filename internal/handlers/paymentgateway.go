@@ -133,17 +133,20 @@ func (contr *Controller) ConfirmOrder(c echo.Context) error {
 		return err
 	}
 	// Verify signature
+    sign := confirmReq.Signature
+    confirmReq.Signature = ""
 	jsonData, err := json.Marshal(confirmReq)
 	if err != nil {
 		return err
 	}
+    utils.Logger.LogInfo().RawJSON("request", jsonData).Msg("Confirm request data")
 	// Manually escape forward slashes
 	escapedData := strings.ReplaceAll(string(jsonData), "/", "\\/")
 	// Create signature and add it to request headers
 	base64Req := base64.StdEncoding.EncodeToString([]byte(escapedData))
 	hash := md5.Sum([]byte(base64Req + os.Getenv("GATEWAY_API_KEY")))
 	// Compare hash
-	if fmt.Sprintf("%x", hash) != confirmReq.Signature {
+	if fmt.Sprintf("%x", hash) != sign {
 		utils.Logger.LogError().Fields(map[string]interface{}{
 			"order_id": confirmReq.OrderID,
 			"uuid":     confirmReq.Uuid,
