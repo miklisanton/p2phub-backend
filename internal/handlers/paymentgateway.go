@@ -138,9 +138,9 @@ func (contr *Controller) ConfirmOrder(c echo.Context) error {
 		return err
 	}
 	// Manually escape forward slashes
-	// escapedData := strings.ReplaceAll(string(jsonData), "/", "\\/")
+	escapedData := strings.ReplaceAll(string(jsonData), "/", "\\/")
 	// Create signature and add it to request headers
-	base64Req := base64.StdEncoding.EncodeToString(jsonData)
+	base64Req := base64.StdEncoding.EncodeToString([]byte(escapedData))
 	hash := md5.Sum([]byte(base64Req + os.Getenv("GATEWAY_API_KEY")))
 	// Compare hash
 	if fmt.Sprintf("%x", hash) != confirmReq.Signature {
