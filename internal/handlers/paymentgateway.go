@@ -193,7 +193,13 @@ func (contr *Controller) ConfirmOrder(c echo.Context) error {
 			return err
 		}
 	} else {
-		contr.subscriptionsService.AddMonth(subscription)
+		if subscription.ValidUntil.Before(time.Now()) {
+			// Set subscription to expire in one month if it is expired
+			subscription.ValidUntil = time.Now().AddDate(0, 1, 0)
+		} else {
+			// Add one month to subscription if it is not expired
+			contr.subscriptionsService.AddMonth(subscription)
+		}
 	}
 
 	return c.JSON(http.StatusOK, map[string]any{

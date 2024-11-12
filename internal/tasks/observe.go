@@ -7,27 +7,36 @@ import (
 	"log"
 	"p2pbot/internal/db/models"
 	"p2pbot/internal/rabbitmq"
+	"p2pbot/internal/rediscl"
 	"p2pbot/internal/services"
 	"p2pbot/internal/utils"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 )
 
 type AdsObserver struct {
-	trackerService *services.TrackerService
-	userService    *services.UserService
-	exchanges      []services.ExchangeI
-	rabbitCl       *rabbitmq.RabbitMQ
+	trackerService       *services.TrackerService
+	subscriptionsService *services.SubscriptionService
+	userService          *services.UserService
+	exchanges            []services.ExchangeI
+	rabbitCl             *rabbitmq.RabbitMQ
 }
 
-func NewAdsObserver(trackerService *services.TrackerService, userService *services.UserService,
-	exchanges []services.ExchangeI, rabbit *rabbitmq.RabbitMQ) *AdsObserver {
+func NewAdsObserver(
+	trackerService *services.TrackerService,
+	userService *services.UserService,
+	subscriptionsService *services.SubscriptionService,
+	exchanges []services.ExchangeI,
+	rabbit *rabbitmq.RabbitMQ) *AdsObserver {
 	return &AdsObserver{
-		trackerService: trackerService,
-		userService:    userService,
-		exchanges:      exchanges,
-		rabbitCl:       rabbit,
+		trackerService:       trackerService,
+		userService:          userService,
+		subscriptionsService: subscriptionsService,
+		exchanges:            exchanges,
+		rabbitCl:             rabbit,
 	}
 }
 
@@ -178,9 +187,11 @@ func (ao *AdsObserver) Notify(tracker *models.Tracker, ad services.P2PItemI) {
 		utils.Logger.Info().Msg(fmt.Sprintf("Can't sent notification, because user with userID %d has no telegram connected", user.ID))
 		return
 	}
+	// Check if notifications enabled
 	if !tracker.Notify {
 		return
 	}
+	// Create notification
 	n := utils.Notification{
 		Data:     ad,
 		Exchange: tracker.Exchange,
@@ -192,9 +203,40 @@ func (ao *AdsObserver) Notify(tracker *models.Tracker, ad services.P2PItemI) {
 	if err != nil {
 		utils.Logger.LogError().Msg("Error converting user to json")
 	}
-	if err := ao.rabbitCl.Publish([]byte(nJson)); err != nil {
-		utils.Logger.LogError().Fields(map[string]interface{}{
-			"error": err.Error(),
-		}).Msg("Error publishing message")
+	// Check if user has active subscription, if not allow only 3 notifications a week
+	subscription, err := ao.subscriptionsService.GetByUserId(user.ID)
+	if err != nil {
+		utils.Logger.LogError().Str("error ", err.Error()).Msg("Error getting subscription")
+		return
+	}
+	if subscription == nil || subscription.ValidUntil.Before(time.Now()) {
+		ctx := rediscl.RDB.Ctx
+		count := rediscl.RDB.Client.Get(ctx, fmt.Sprintf("notification:%d", user.ID))
+		if count.Err() == redis.Nil {
+			rediscl.RDB.Client.Set(ctx, fmt.Sprintf("notification:%d", user.ID), 1, time.Hour*24*7)
+		} else {
+			c, err := count.Int()
+			if err != nil {
+				utils.Logger.LogError().Msg("Error getting notification count")
+				return
+			}
+			if c > 3 {
+				utils.Logger.LogInfo().Msg(fmt.Sprintf("User %d has reached notification limit", user.ID))
+				return
+			}
+		}
+		if err := ao.rabbitCl.Publish([]byte(nJson)); err != nil {
+			utils.Logger.LogError().Fields(map[string]interface{}{
+				"error": err.Error(),
+			}).Msg("Error publishing message")
+		}
+		rediscl.RDB.Client.Incr(ctx, fmt.Sprintf("notification:%d", user.ID))
+	} else {
+		// Just publish notification if user has active subscription
+		if err := ao.rabbitCl.Publish([]byte(nJson)); err != nil {
+			utils.Logger.LogError().Fields(map[string]interface{}{
+				"error": err.Error(),
+			}).Msg("Error publishing message")
+		}
 	}
 }

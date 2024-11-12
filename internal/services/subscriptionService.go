@@ -27,7 +27,7 @@ func (s *SubscriptionService) AddMonth(subscription *models.Subscription) error 
 	if subscription.Id == 0 {
 		return fmt.Errorf("subscription does not exist")
 	}
-	subscription.Valid_until = subscription.Valid_until.AddDate(0, 1, 0)
+	subscription.ValidUntil = subscription.ValidUntil.AddDate(0, 1, 0)
 	return s.repo.Save(subscription)
 }
 

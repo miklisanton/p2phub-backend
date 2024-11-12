@@ -6,6 +6,7 @@ import (
 	"p2pbot/internal/app"
 	"p2pbot/internal/db/repository"
 	"p2pbot/internal/rabbitmq"
+	"p2pbot/internal/rediscl"
 	"p2pbot/internal/services"
 	"p2pbot/internal/tasks"
 	"p2pbot/internal/utils"
@@ -26,6 +27,8 @@ func main() {
 	userRepo := repository.NewUserRepository(DB)
 	trackerService := services.NewTrackerService(trackerRepo)
 	userService := services.NewUserService(userRepo)
+	subscriptionRepo := repository.NewSubscriptionRepository(DB)
+	subscriptionService := services.NewSubscriptionService(subscriptionRepo)
 
 	bybit := services.NewBybitExcahnge(cfg)
 	binance := services.NewBinanceExchange(cfg)
@@ -35,7 +38,10 @@ func main() {
 	if err != nil {
 		fmt.Println("Error: ", err)
 	}
-	observer := tasks.NewAdsObserver(trackerService, userService, exs, rabbit)
+
+	rediscl.InitRedisClient(cfg.Redis.Host, cfg.Redis.Port)
+
+	observer := tasks.NewAdsObserver(trackerService, userService, subscriptionService, exs, rabbit)
 
 	ctx := context.Background()
 	observer.Start(1*time.Minute, ctx)
