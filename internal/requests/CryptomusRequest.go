@@ -41,4 +41,3 @@ type ConvertData struct {
 	Rate       *string `json:"rate"`
 	Amount     *string `json:"amount"`
 }
-

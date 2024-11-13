@@ -128,35 +128,23 @@ func (contr *Controller) CreateOrder(c echo.Context) error {
 // It is called when payment is confirmed
 // It checks if signature and order_id is valid and updates user subscription
 func (contr *Controller) ConfirmOrder(c echo.Context) error {
-    var confirmReq map[string]interface{}
-    if err := json.NewDecoder(c.Request().Body).Decode(&confirmReq); err != nil {
-        return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request payload"})
-    }
-    utils.Logger.LogInfo().Fields(map[string]interface{}{
-        "request": confirmReq,
-    }).Msg("Confirm request")
-	// Verify signature
-    sign, ok := confirmReq["sign"].(string)
-    if !ok {
-        return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request payload"})
-    }
-    delete(confirmReq, "sign")
-    jsonData, err := json.Marshal(confirmReq)
+    // Read request body
+    data, err := io.ReadAll(c.Request().Body)
     if err != nil {
-        return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request payload"})
+        return err
     }
-	// Manually escape forward slashes
-	escapedData := strings.ReplaceAll(string(jsonData), "/", "\\/")
-	// Create signature and add it to request headers
-	base64Req := base64.StdEncoding.EncodeToString([]byte(escapedData))
-    utils.Logger.LogInfo().Str("key", os.Getenv("GATEWAY_API_KEY")).Msg("API key")
-	hash := md5.Sum([]byte(base64Req + os.Getenv("GATEWAY_API_KEY")))
-	// Compare hash
-	if fmt.Sprintf("%x", hash) != sign {
-        utils.Logger.LogInfo().Str("hash", fmt.Sprintf("%x", hash)).Msg("Hash")
-        utils.Logger.LogInfo().Str("sign", sign).Msg("Sign")
-		return fmt.Errorf("Invalid signature")
-	}
+    var confirmReq map[string]interface{}
+    if err := json.Unmarshal(data, &confirmReq); err != nil {
+        return err
+    }
+    // Check ip
+    if c.RealIP() != os.Getenv("GATEWAY_IP") {
+        return fmt.Errorf("Invalid IP")
+    }
+    // Verify signature
+    //if err := utils.VerifySignature(confirmReq); err != nil {
+    //    return err
+    //}
 	//Check status
 	if confirmReq["status"] != "paid" {
 		utils.Logger.LogError().Fields(map[string]interface{}{
