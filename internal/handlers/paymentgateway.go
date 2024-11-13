@@ -140,6 +140,7 @@ func (contr *Controller) ConfirmOrder(c echo.Context) error {
 		return err
 	}
     utils.Logger.LogInfo().RawJSON("request", jsonData).Msg("Confirm request data")
+
 	// Manually escape forward slashes
 	escapedData := strings.ReplaceAll(string(jsonData), "/", "\\/")
 	// Create signature and add it to request headers
@@ -151,7 +152,10 @@ func (contr *Controller) ConfirmOrder(c echo.Context) error {
 			"order_id": confirmReq.OrderID,
 			"uuid":     confirmReq.Uuid,
 			"status":   confirmReq.Status,
+            "sign":     sign,
 		}).Msg("Invalid signature")
+        utils.Logger.LogInfo().Str("hash", fmt.Sprintf("%x", hash)).Msg("Hash")
+        utils.Logger.LogInfo().RawJSON("request", jsonData).Msg("Confirm request data")
 
 		return fmt.Errorf("Invalid signature")
 	}
