@@ -128,27 +128,25 @@ func (contr *Controller) CreateOrder(c echo.Context) error {
 // It is called when payment is confirmed
 // It checks if signature and order_id is valid and updates user subscription
 func (contr *Controller) ConfirmOrder(c echo.Context) error {
-	confirmReq := requests.ConfirmRequest{}
-	if err := c.Bind(&confirmReq); err != nil {
-		return err
-	}
-    // Ensure signature and status fields are not nil
-	if confirmReq.Signature == nil || confirmReq.Status == nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "missing signature or status"})
-	}
+    var confirmReq map[string]interface{}
+    if err := json.NewDecoder(c.Request().Body).Decode(&confirmReq); err != nil {
+        return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request payload"})
+    }
 	// Verify signature
-    sign := *confirmReq.Signature
-    confirmReq.Signature = nil
-	jsonData, err := json.Marshal(confirmReq)
-	if err != nil {
-		return err
-	}
-    utils.Logger.LogInfo().RawJSON("request", jsonData).Msg("Confirm request data")
-
+    sign, ok := confirmReq["sign"].(string)
+    if !ok {
+        return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request payload"})
+    }
+    delete(confirmReq, "sign")
+    jsonData, err := json.Marshal(confirmReq)
+    if err != nil {
+        return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request payload"})
+    }
 	// Manually escape forward slashes
 	escapedData := strings.ReplaceAll(string(jsonData), "/", "\\/")
 	// Create signature and add it to request headers
 	base64Req := base64.StdEncoding.EncodeToString([]byte(escapedData))
+    utils.Logger.LogInfo().Str("key", os.Getenv("GATEWAY_API_KEY")).Msg("API key")
 	hash := md5.Sum([]byte(base64Req + os.Getenv("GATEWAY_API_KEY")))
 	// Compare hash
 	if fmt.Sprintf("%x", hash) != sign {
@@ -157,27 +155,27 @@ func (contr *Controller) ConfirmOrder(c echo.Context) error {
 		return fmt.Errorf("Invalid signature")
 	}
 	//Check status
-	if *confirmReq.Status != "paid" {
+	if confirmReq["status"] != "paid" {
 		utils.Logger.LogError().Fields(map[string]interface{}{
-			"order_id": confirmReq.OrderID,
-			"uuid":     confirmReq.UUID,
-			"status":   confirmReq.Status,
+			"order_id": confirmReq["order_id"],
+			"uuid":     confirmReq["uuid"],
+			"status":   confirmReq["status"],
 		}).Msg("Payment not confirmed")
 		return fmt.Errorf("Payment not confirmed")
 	}
 
 	// Get user id from redis
 	ctx := rediscl.RDB.Ctx
-	userID, err := rediscl.RDB.Client.Get(ctx, "order_id:" + *confirmReq.OrderID).Result()
+    userID, err := rediscl.RDB.Client.Get(ctx, "order_id:" + confirmReq["order_id"].(string)).Result()
 	if err != nil {
 		return err
 	}
 	// Update user subscription
 	utils.Logger.LogInfo().Fields(map[string]interface{}{
-		"order_id": confirmReq.OrderID,
 		"user_id":  userID,
-		"uuid":     confirmReq.UUID,
-		"status":   confirmReq.Status,
+        "order_id": confirmReq["order_id"],
+        "uuid":     confirmReq["uuid"],
+        "status":   confirmReq["status"],
 	}).Msg("Payment confirmed")
 	// Update user subscription
 	uid, err := strconv.Atoi(userID)
@@ -208,7 +206,7 @@ func (contr *Controller) ConfirmOrder(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, map[string]any{
 		"message":  "Subscription updated",
-		"order_id": confirmReq.OrderID,
+		"order_id": confirmReq["order_id"],
 	})
 }
 
