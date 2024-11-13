@@ -128,11 +128,6 @@ func (contr *Controller) CreateOrder(c echo.Context) error {
 // It is called when payment is confirmed
 // It checks if signature and order_id is valid and updates user subscription
 func (contr *Controller) ConfirmOrder(c echo.Context) error {
-    body, err := io.ReadAll(c.Request().Body)
-    if err != nil {
-        return err
-    }
-    utils.Logger.LogInfo().RawJSON("request", body).Msg("Confirm request data")
 	confirmReq := requests.ConfirmRequest{}
 	if err := c.Bind(&confirmReq); err != nil {
 		return err
