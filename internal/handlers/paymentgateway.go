@@ -132,6 +132,9 @@ func (contr *Controller) ConfirmOrder(c echo.Context) error {
     if err := json.NewDecoder(c.Request().Body).Decode(&confirmReq); err != nil {
         return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request payload"})
     }
+    utils.Logger.LogInfo().Fields(map[string]interface{}{
+        "request": confirmReq,
+    }).Msg("Confirm request")
 	// Verify signature
     sign, ok := confirmReq["sign"].(string)
     if !ok {
