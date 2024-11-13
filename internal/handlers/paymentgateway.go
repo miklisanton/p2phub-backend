@@ -132,9 +132,13 @@ func (contr *Controller) ConfirmOrder(c echo.Context) error {
 	if err := c.Bind(&confirmReq); err != nil {
 		return err
 	}
+    // Ensure signature and status fields are not nil
+	if confirmReq.Signature == nil || confirmReq.Status == nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "missing signature or status"})
+	}
 	// Verify signature
-    sign := confirmReq.Signature
-    confirmReq.Signature = ""
+    sign := *confirmReq.Signature
+    confirmReq.Signature = nil
 	jsonData, err := json.Marshal(confirmReq)
 	if err != nil {
 		return err
@@ -148,22 +152,14 @@ func (contr *Controller) ConfirmOrder(c echo.Context) error {
 	hash := md5.Sum([]byte(base64Req + os.Getenv("GATEWAY_API_KEY")))
 	// Compare hash
 	if fmt.Sprintf("%x", hash) != sign {
-		utils.Logger.LogError().Fields(map[string]interface{}{
-			"order_id": confirmReq.OrderID,
-			"uuid":     confirmReq.Uuid,
-			"status":   confirmReq.Status,
-            "sign":     sign,
-		}).Msg("Invalid signature")
         utils.Logger.LogInfo().Str("hash", fmt.Sprintf("%x", hash)).Msg("Hash")
-        utils.Logger.LogInfo().RawJSON("request", jsonData).Msg("Confirm request data")
-
 		return fmt.Errorf("Invalid signature")
 	}
 	//Check status
-	if confirmReq.Status != "paid" {
+	if *confirmReq.Status != "paid" {
 		utils.Logger.LogError().Fields(map[string]interface{}{
 			"order_id": confirmReq.OrderID,
-			"uuid":     confirmReq.Uuid,
+			"uuid":     confirmReq.UUID,
 			"status":   confirmReq.Status,
 		}).Msg("Payment not confirmed")
 		return fmt.Errorf("Payment not confirmed")
@@ -171,7 +167,7 @@ func (contr *Controller) ConfirmOrder(c echo.Context) error {
 
 	// Get user id from redis
 	ctx := rediscl.RDB.Ctx
-	userID, err := rediscl.RDB.Client.Get(ctx, "order_id:"+confirmReq.OrderID).Result()
+	userID, err := rediscl.RDB.Client.Get(ctx, "order_id:" + *confirmReq.OrderID).Result()
 	if err != nil {
 		return err
 	}
@@ -179,7 +175,7 @@ func (contr *Controller) ConfirmOrder(c echo.Context) error {
 	utils.Logger.LogInfo().Fields(map[string]interface{}{
 		"order_id": confirmReq.OrderID,
 		"user_id":  userID,
-		"uuid":     confirmReq.Uuid,
+		"uuid":     confirmReq.UUID,
 		"status":   confirmReq.Status,
 	}).Msg("Payment confirmed")
 	// Update user subscription
