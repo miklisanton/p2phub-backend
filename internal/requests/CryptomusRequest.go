@@ -25,7 +25,7 @@ type ConfirmRequest struct {
 	PayerCurrency            *string     `json:"payer_currency"`
 	PaymentAmount            *string     `json:"payment_amount"`
 	PaymentAmountUSD         *string     `json:"payment_amount_usd"`
-	Signature                *string     `json:"sign"`
+	Signature                *string     `json:"sign,omitempty"`
 	Status                   *string     `json:"status"`
 	TransferID               *string     `json:"transfer_id"`
 	Txid                     *string     `json:"txid"`
