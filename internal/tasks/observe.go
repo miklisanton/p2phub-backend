@@ -192,7 +192,7 @@ func (ao *AdsObserver) Notify(tracker *models.Tracker, ad services.P2PItemI) {
 		return
 	}
 	// Create notification
-	n := utils.Notification{
+	n := services.Notification{
 		Data:     ad,
 		Exchange: tracker.Exchange,
 		Side:     tracker.Side,

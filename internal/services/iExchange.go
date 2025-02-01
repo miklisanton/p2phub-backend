@@ -1,5 +1,7 @@
 package services
 
+import "fmt"
+
 // ExchangeI is an interface for exchanges
 type ExchangeI interface {
 	GetBestAdv(currency, side string, paymentMethods []string) (P2PItemI, error)
@@ -22,4 +24,13 @@ type P2PItemI interface {
 type PaymentMethod struct {
 	Id   string `json:"id"`
 	Name string `json:"name"`
+}
+
+func GetPMethodName(pMethods []PaymentMethod, id string) (string, error) {
+	for _, pMethod := range pMethods {
+		if pMethod.Id == id {
+			return pMethod.Name, nil
+		}
+	}
+	return "", fmt.Errorf("payment method not found")
 }

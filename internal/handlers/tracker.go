@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"p2pbot/internal/db/models"
 	"p2pbot/internal/requests"
+	"p2pbot/internal/services"
 	"p2pbot/internal/utils"
 	"slices"
 	"strconv"
@@ -244,7 +245,7 @@ func (contr *Controller) CreateTracker(c echo.Context) error {
 		pms := make([]*models.PaymentMethod, 0)
 		for _, p := range pmStrings {
 			// Get name from id and add to tracker
-			name, err := utils.GetPMethodName(pMethods, p)
+			name, err := services.GetPMethodName(pMethods, p)
 			if err != nil {
 				return c.JSON(http.StatusBadRequest, map[string]any{
 					"message": "payment method not found",

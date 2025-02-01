@@ -5,50 +5,8 @@ import (
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
 	"p2pbot/internal/db/models"
-	"p2pbot/internal/services"
 	"reflect"
 )
-
-type Notification struct {
-	ChatID   int64             `json:"chat_id"`
-	Data     services.P2PItemI `json:"top_order"`
-	Exchange string            `json:"exchange"`
-	Side     string            `json:"side"`
-	Currency string            `json:"currency"`
-}
-
-func (n *Notification) UnmarshalJSON(data []byte) error {
-	// Define a temporary structure for the concrete type
-	type Alias Notification
-	aux := &struct {
-		Data json.RawMessage `json:"top_order"`
-		*Alias
-	}{
-		Alias: (*Alias)(n),
-	}
-
-	if err := json.Unmarshal(data, &aux); err != nil {
-		return err
-	}
-
-	if aux.Exchange == "binance" {
-		var item services.DataItem
-		if err := json.Unmarshal(aux.Data, &item); err != nil {
-			return err
-		}
-		n.Data = item
-	} else if aux.Exchange == "bybit" {
-		var item services.Item
-		if err := json.Unmarshal(aux.Data, &item); err != nil {
-			return err
-		}
-		n.Data = item
-	} else {
-		return fmt.Errorf("no unmarshal logic for %s", aux.Exchange)
-	}
-
-	return nil
-}
 
 func GetField(obj interface{}, name string) (interface{}, error) {
 	v := reflect.ValueOf(obj).Elem()
@@ -115,13 +73,4 @@ func AllOutbidded(pMethods []*models.PaymentMethod) bool {
 		}
 	}
 	return true
-}
-
-func GetPMethodName(pMethods []services.PaymentMethod, id string) (string, error) {
-	for _, pMethod := range pMethods {
-		if pMethod.Id == id {
-			return pMethod.Name, nil
-		}
-	}
-	return "", fmt.Errorf("payment method not found")
 }

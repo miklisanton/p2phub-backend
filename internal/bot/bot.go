@@ -19,7 +19,7 @@ type Bot struct {
 	api            *tgbotapi.BotAPI
 	userService    *services.UserService
 	trackerService *services.TrackerService
-	NotificationCh chan utils.Notification
+	NotificationCh chan services.Notification
 	exchanges      []services.ExchangeI
 	toDelete       []int
 }
@@ -34,7 +34,7 @@ func NewBot(cfg *config.Config, userSvc *services.UserService, trackerSvc *servi
 		api:            api,
 		userService:    userSvc,
 		trackerService: trackerSvc,
-		NotificationCh: make(chan utils.Notification),
+		NotificationCh: make(chan services.Notification),
 		exchanges:      exs}, nil
 }
 
