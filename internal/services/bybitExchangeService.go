@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"p2pbot/internal/config"
 	"p2pbot/internal/rediscl"
+	"p2pbot/internal/utils"
 	"strconv"
 	"time"
 
@@ -245,11 +246,13 @@ func (ex BybitExchange) GetAdsByName(currency, side, username string, pMethods [
 	}
 }
 
+// GetAds returns all advertisements for a given currency and side
 func (ex BybitExchange) GetAds(currency, side string) ([]P2PItemI, error) {
 	out := make([]P2PItemI, 0)
 	i := 1
 	for {
 		response, err := ex.requestData(i, currency, side, []string{})
+		utils.Logger.Debug().Int("page", i).Str("currency", currency).Str("side", side).Msg("Fetching bybit advertisements")
 		if err != nil {
 			return nil, fmt.Errorf("error while getting advertisements %v", err)
 		}
