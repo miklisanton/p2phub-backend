@@ -64,8 +64,6 @@ func (ao *AdsObserver) CheckAds() {
 	var wg sync.WaitGroup
 	for _, ex := range ao.exchanges {
 
-		utils.Logger.Debug().Msg(fmt.Sprintf("monitoring ads on %s", ex.GetName()))
-
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -84,6 +82,7 @@ func (ao *AdsObserver) CheckAds() {
 }
 
 func (ao *AdsObserver) CheckAdsOnExchange(ex services.ExchangeI, idsMap map[string][]int) {
+	utils.Logger.Info().Msg("Checking ads on " + ex.GetName())
 	var wg sync.WaitGroup
 	for key, ids := range idsMap {
 		wg.Add(1)
@@ -103,6 +102,7 @@ func (ao *AdsObserver) CheckAdsOnExchange(ex services.ExchangeI, idsMap map[stri
 		}()
 	}
 	wg.Wait()
+	utils.Logger.Info().Msg("Finished checking ads on " + ex.GetName())
 }
 
 func (ao *AdsObserver) CheckTracker(ads []services.P2PItemI, trackerID int) {
@@ -114,7 +114,7 @@ func (ao *AdsObserver) CheckTracker(ads []services.P2PItemI, trackerID int) {
 		for _, ad := range ads {
 			if utils.ComparePaymentMethods(ad.GetPaymentMethods(), tracker.Payment) {
 				// if advertisements payment methods contain one of the tracker payment methods
-				if ad.GetName() != tracker.Username {
+				if ad.GetName() != tracker.Username && ad.GetPrice() != tracker.Price {
 					// if advertisement name doesnt match tracker username
 					// Notify user
 					if !tracker.WaitingUpdate {
@@ -142,7 +142,7 @@ func (ao *AdsObserver) CheckTracker(ads []services.P2PItemI, trackerID int) {
 		for _, pMethod := range tracker.Payment {
 			for _, ad := range ads {
 				if utils.Contains(ad.GetPaymentMethods(), pMethod.Id) {
-					if ad.GetName() != tracker.Username {
+					if ad.GetName() != tracker.Username && ad.GetPrice() != tracker.Price {
 						//Notify user
 						if !pMethod.Outbided {
 							ao.Notify(tracker, ad)
