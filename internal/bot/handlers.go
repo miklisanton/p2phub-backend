@@ -3,6 +3,7 @@ package bot
 import (
 	"encoding/json"
 	"fmt"
+	"p2pbot/internal/services"
 	"p2pbot/internal/utils"
 	"strings"
 
@@ -11,7 +12,7 @@ import (
 
 func (bot *Bot) HandleNotification(msg amqp.Delivery) {
 	if msg.ContentType == "application/json" {
-		var n utils.Notification
+		var n services.Notification
 		if err := json.Unmarshal(msg.Body, &n); err != nil {
 			utils.Logger.LogError().Msg(err.Error())
 			return

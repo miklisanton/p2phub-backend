@@ -86,7 +86,7 @@ func New() *FSM {
 			}
 
 			t.Exchange = ex
-			t.UserID = id
+			t.UserID = int(id)
 
 			log.Printf("New Tracker for %d on %s\n", id, ex)
 		},
