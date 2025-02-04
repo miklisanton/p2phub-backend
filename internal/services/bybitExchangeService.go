@@ -4,12 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/rs/zerolog/log"
 	"io"
-	"log"
 	"net/http"
 	"p2pbot/internal/config"
 	"p2pbot/internal/rediscl"
-	"p2pbot/internal/utils"
 	"strconv"
 	"time"
 
@@ -29,6 +28,7 @@ type BybitPayload struct {
 	Side       string   `json:"side"`
 	Payment    []string `json:"payment"`
 	Page       string   `json:"page"`
+	Size       string   `json:"size"`
 }
 
 type BybitAdsResponse struct {
@@ -100,7 +100,7 @@ func (ex BybitExchange) GetBestAdv(currency, side string, paymentMethods []strin
 
 			if resp.StatusCode != http.StatusOK {
 				log.Printf("bad status: %s", resp.Status)
-				log.Println("retrying...")
+				log.Print("retrying...")
 				time.Sleep(ex.retryDelay)
 				continue
 			}
@@ -108,7 +108,7 @@ func (ex BybitExchange) GetBestAdv(currency, side string, paymentMethods []strin
 			body, err = io.ReadAll(resp.Body)
 			if err != nil {
 				log.Printf("could not read response body: %v", err)
-				log.Println("retrying...")
+				log.Print("retrying...")
 				time.Sleep(ex.retryDelay)
 				continue
 			}
@@ -170,6 +170,7 @@ func (ex BybitExchange) requestData(page int, currency, side string, pMethods []
 		Side:       side,
 		Payment:    pMethods,
 		Page:       fmt.Sprintf("%d", page),
+		Size:       "1000",
 	}
 
 	jsonPayload, err := json.Marshal(payload)
@@ -186,7 +187,7 @@ func (ex BybitExchange) requestData(page int, currency, side string, pMethods []
 
 			if resp.StatusCode != http.StatusOK {
 				log.Printf("bad status: %s", resp.Status)
-				log.Println("retrying...")
+				log.Print("retrying...")
 				time.Sleep(ex.retryDelay)
 				continue
 			}
@@ -194,7 +195,7 @@ func (ex BybitExchange) requestData(page int, currency, side string, pMethods []
 			body, err = io.ReadAll(resp.Body)
 			if err != nil {
 				log.Printf("could not read response body: %v", err)
-				log.Println("retrying...")
+				log.Panic().Msg("retrying...")
 				time.Sleep(ex.retryDelay)
 				continue
 			}
@@ -251,8 +252,14 @@ func (ex BybitExchange) GetAds(currency, side string) ([]P2PItemI, error) {
 	out := make([]P2PItemI, 0)
 	i := 1
 	for {
+		start := time.Now()
 		response, err := ex.requestData(i, currency, side, []string{})
-		utils.Logger.Debug().Int("page", i).Str("currency", currency).Str("side", side).Msg("Fetching bybit advertisements")
+		log.Debug().
+			Int("page", i).
+			Str("currency", currency).
+			Str("side", side).
+			Int("len(ads)", len(response.Result.Items)).
+			TimeDiff("request time(ms)", time.Now(), start).Msg("Fetching bybit advertisements")
 		if err != nil {
 			return nil, fmt.Errorf("error while getting advertisements %v", err)
 		}

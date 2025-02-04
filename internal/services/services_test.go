@@ -2,12 +2,14 @@ package services_test
 
 import (
 	"fmt"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"os"
-	"p2pbot/internal/app"
-	"p2pbot/internal/rediscl"
+	"p2pbot/internal/config"
 	"p2pbot/internal/services"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 var (
@@ -49,28 +51,24 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
-	_, cfg, err := app.Init()
+	cfg, err := config.NewConfig("/Users/antonmiklis/GolandProjects/p2pbot/config.yaml")
 	if err != nil {
 		panic(err)
 	}
+	log.Logger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC1123Z}).
+		Level(zerolog.DebugLevel).
+		With().
+		Timestamp().
+		Caller().
+		Logger()
+
 	bybit = services.NewBybitExcahnge(cfg)
-	binance = services.NewBinanceExchange(cfg)
-	rediscl.InitRedisClient(cfg.Redis.Host, cfg.Redis.Port)
 	code := m.Run()
 
 	//DB.MustExec("DELETE FROM users");
 
 	os.Exit(code)
 }
-
-//func TestFetchAllPaymentList(t *testing.T) {
-//    res, err := bybit.FetchAllPaymentList()
-//    if err != nil {
-//        t.Errorf("Error: %v", err)
-//    }
-//    t.Log("result: ", res)
-//}
-
 func TestBybitGetCachedMethods(t *testing.T) {
 	currencies, err := bybit.GetCachedPaymentMethods("CZK")
 	if err != nil {
@@ -119,4 +117,14 @@ func TestBybitGetCachedCurrencies(t *testing.T) {
 	}
 
 	t.Log("result: ", currencies)
+}
+
+func TestBybitFetchAds(t *testing.T) {
+	t.Log("Fetching ads")
+	ads, err := bybit.GetAds("EUR", "BUY")
+	if err != nil {
+		t.Errorf("Error: %v", err)
+	}
+
+	t.Log("result: ", ads)
 }
