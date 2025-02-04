@@ -12,6 +12,7 @@ import (
 	"github.com/auth0/go-jwt-middleware/v2/validator"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
+	"github.com/rs/zerolog/log"
 	"golang.org/x/net/context"
 )
 
@@ -30,7 +31,7 @@ func (c CustomClaims) Validate(ctx context.Context) error {
 func CheckJWT(next echo.HandlerFunc) echo.HandlerFunc {
 	issuerURL, err := url.Parse("https://" + os.Getenv("AUTH0_DOMAIN") + "/")
 	if err != nil {
-		Logger.LogFatal().Err(err).Msg("Error parsing issuer URL")
+		log.Fatal().Err(err).Msg("Error parsing issuer URL")
 	}
 
 	provider := jwks.NewCachingProvider(issuerURL, 5*time.Minute)
@@ -48,11 +49,11 @@ func CheckJWT(next echo.HandlerFunc) echo.HandlerFunc {
 		validator.WithAllowedClockSkew(time.Minute),
 	)
 	if err != nil {
-		Logger.LogFatal().Err(err).Msg("Error creating JWT validator")
+		log.Fatal().Err(err).Msg("Error creating JWT validator")
 	}
 
 	errorHandler := func(w http.ResponseWriter, r *http.Request, err error) {
-		Logger.LogError().Err(err).Msg("Failed to validate JWT")
+		log.Error().Err(err).Msg("Failed to validate JWT")
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
@@ -87,7 +88,7 @@ func CheckJWT(next echo.HandlerFunc) echo.HandlerFunc {
 func LoggingMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		// log the request
-		Logger.LogInfo().Fields(map[string]interface{}{
+		log.Info().Fields(map[string]interface{}{
 			"method":     c.Request().Method,
 			"uri":        c.Request().URL.Path,
 			"user_agent": c.Request().UserAgent(),
@@ -98,13 +99,13 @@ func LoggingMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		// call the next middleware/handler
 		err := next(c)
 		if err != nil {
-			Logger.LogError().Fields(map[string]interface{}{
+			log.Error().Fields(map[string]interface{}{
 				"error": err.Error(),
 			}).Msg("Response")
 			return err
 		}
 
-		Logger.LogInfo().Fields(map[string]interface{}{
+		log.Info().Fields(map[string]interface{}{
 			"status":    c.Response().Status,
 			"client_ip": c.RealIP(),
 			"size":      c.Response().Size,
@@ -129,7 +130,7 @@ func AuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 
 		c.Set("email", claims.Email)
 
-		Logger.LogInfo().Fields(map[string]interface{}{
+		log.Info().Fields(map[string]interface{}{
 			"email":     claims.Email,
 			"client_ip": c.RealIP(),
 		}).Msg("User authenticated")
@@ -167,7 +168,7 @@ func ExtractEmail(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 		ctx.Set("email", customClaims.Email)
 
-		Logger.LogInfo().Fields(map[string]interface{}{
+		log.Info().Fields(map[string]interface{}{
 			"email":     customClaims.Email,
 			"client_ip": ctx.RealIP(),
 		}).Msg("User authenticated")

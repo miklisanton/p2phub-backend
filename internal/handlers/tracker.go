@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"fmt"
+	"github.com/rs/zerolog/log"
 	"net/http"
 	"p2pbot/internal/db/models"
 	"p2pbot/internal/requests"
@@ -57,7 +58,7 @@ func (contr *Controller) GetTrackers(c echo.Context) error {
 		l = 10
 	}
 
-	utils.Logger.Info().Fields(map[string]interface{}{
+	log.Info().Fields(map[string]interface{}{
 		"email": email,
 		"page":  p,
 	}).Msg("Trackers requested")
@@ -219,7 +220,7 @@ func (contr *Controller) CreateTracker(c echo.Context) error {
 		})
 	}
 
-	utils.Logger.LogInfo().Fields(map[string]interface{}{
+	log.Info().Fields(map[string]interface{}{
 		"email":            email,
 		exchange.GetName(): ads,
 	}).Msg("Ads found")
@@ -267,7 +268,7 @@ func (contr *Controller) CreateTracker(c echo.Context) error {
 		// Add to response
 		createdTrackers = append(createdTrackers, *tracker)
 		// Log
-		utils.Logger.Debug().Fields(map[string]interface{}{
+		log.Debug().Fields(map[string]interface{}{
 			"tracker": tracker,
 		}).Msg("Tracker created")
 		// Reset tracker ID
@@ -446,7 +447,7 @@ func (contr *Controller) GetPaymentMethods(c echo.Context) error {
 		return err
 	}
 
-	utils.Logger.LogInfo().Fields(map[string]interface{}{
+	log.Info().Fields(map[string]interface{}{
 		"email":    email,
 		"exchange": exchange,
 		"currency": currency,
@@ -489,7 +490,7 @@ func (contr *Controller) GetCurrencies(c echo.Context) error {
 	// Sort alphabetically
 	slices.Sort(out)
 
-	utils.Logger.LogInfo().Fields(map[string]interface{}{
+	log.Info().Fields(map[string]interface{}{
 		"email":    email,
 		"exchange": exchange,
 		"options":  out,
@@ -508,7 +509,7 @@ func (cont *Controller) GetExchanges(c echo.Context) error {
 		out = append(out, k)
 	}
 
-	utils.Logger.LogInfo().Fields(map[string]interface{}{
+	log.Info().Fields(map[string]interface{}{
 		"email":     email,
 		"exchanges": out,
 	}).Msg("Exchanges requested")

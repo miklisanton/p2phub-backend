@@ -8,14 +8,11 @@ import (
 	"p2pbot/internal/rabbitmq"
 	"p2pbot/internal/rediscl"
 	"p2pbot/internal/services"
-	"p2pbot/internal/utils"
 	"time"
 )
 
 // Delete keyboard message after send
 func main() {
-	utils.NewLogger()
-
 	// wait until all services are up
 	time.Sleep(10 * time.Second)
 	DB, cfg, err := app.Init()

@@ -3,8 +3,8 @@ package bot
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/rs/zerolog/log"
 	"p2pbot/internal/services"
-	"p2pbot/internal/utils"
 	"strings"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -14,7 +14,7 @@ func (bot *Bot) HandleNotification(msg amqp.Delivery) {
 	if msg.ContentType == "application/json" {
 		var n services.Notification
 		if err := json.Unmarshal(msg.Body, &n); err != nil {
-			utils.Logger.LogError().Msg(err.Error())
+			log.Error().Msg(err.Error())
 			return
 		}
 		q, minA, maxA := n.Data.GetQuantity()
@@ -43,6 +43,6 @@ Price: %.2f%s`
 			n.Currency)
 		bot.SendMessage(n.ChatID, message)
 	} else {
-		utils.Logger.LogInfo().Msg(string(msg.Body))
+		log.Error().Str("msg body", string(msg.Body)).Msg("Invalid content type")
 	}
 }

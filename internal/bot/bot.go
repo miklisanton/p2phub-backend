@@ -2,11 +2,10 @@ package bot
 
 import (
 	"fmt"
-	"log"
+	"github.com/rs/zerolog/log"
 	"p2pbot/internal/config"
 	"p2pbot/internal/rediscl"
 	"p2pbot/internal/services"
-	"p2pbot/internal/utils"
 	"strconv"
 	"strings"
 
@@ -44,7 +43,7 @@ func (bot *Bot) Start() {
 
 	updates, err := bot.api.GetUpdatesChan(u)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Msg("Failed to get updates")
 	}
 
 	for update := range updates {
@@ -57,7 +56,7 @@ func (bot *Bot) Start() {
 		case "start":
 			err := bot.HandleStart(update.Message)
 			if err != nil {
-				utils.Logger.LogError().Fields(map[string]interface{}{
+				log.Error().Fields(map[string]interface{}{
 					"error": err.Error(),
 				}).Msg("bot message")
 			}

@@ -9,7 +9,6 @@ import (
 	"p2pbot/internal/rabbitmq"
 	"p2pbot/internal/rediscl"
 	"p2pbot/internal/services"
-	"p2pbot/internal/utils"
 	"path/filepath"
 	"testing"
 	"time"
@@ -56,7 +55,6 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic(err)
 	}
-	utils.NewLogger()
 
 	trackerRepo := repository.NewTrackerRepository(DB)
 	userRepo := repository.NewUserRepository(DB)

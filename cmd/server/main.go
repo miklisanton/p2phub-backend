@@ -50,7 +50,6 @@ func main() {
 		cfg,
 	)
 
-	utils.NewLogger()
 	e := echo.New()
 	e.Use(utils.LoggingMiddleware)
 

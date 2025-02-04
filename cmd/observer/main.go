@@ -9,7 +9,6 @@ import (
 	"p2pbot/internal/rediscl"
 	"p2pbot/internal/services"
 	"p2pbot/internal/tasks"
-	"p2pbot/internal/utils"
 	"time"
 )
 
@@ -21,7 +20,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	utils.NewLogger()
 
 	trackerRepo := repository.NewTrackerRepository(DB)
 	userRepo := repository.NewUserRepository(DB)

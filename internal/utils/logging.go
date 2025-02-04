@@ -1,61 +1,24 @@
 package utils
 
 import (
-	"fmt"
-	"os"
-	"strings"
-	"time"
-
 	"github.com/rs/zerolog"
+	"runtime"
+	"strconv"
+	"strings"
 )
 
-type MyLogger struct {
-	zerolog.Logger
+func GetGoroutineID() int {
+	var buf [64]byte
+	n := runtime.Stack(buf[:], false)
+	stack := strings.Fields(strings.TrimPrefix(string(buf[:n]), "goroutine "))[0]
+	id, _ := strconv.Atoi(stack)
+	return id
 }
 
-var Logger MyLogger
+// GoroutineHook adds the goroutine ID to log events
+type GoroutineHook struct{}
 
-func NewLogger() MyLogger {
-	// create output configuration
-	output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
-
-	// Format level: fatal, error, debug, info, warn
-	output.FormatLevel = func(i interface{}) string {
-		return strings.ToUpper(fmt.Sprintf("| %-6s|", i))
-	}
-	output.FormatFieldName = func(i interface{}) string {
-		return fmt.Sprintf("%s:", i)
-	}
-	output.FormatFieldValue = func(i interface{}) string {
-		return fmt.Sprintf("%s", i)
-	}
-
-	// format error
-	output.FormatErrFieldName = func(i interface{}) string {
-		return fmt.Sprintf("%s: ", i)
-	}
-
-	zerolog := zerolog.New(output).With().Caller().Timestamp().Logger()
-	Logger = MyLogger{zerolog}
-	return Logger
-}
-
-func (l *MyLogger) LogInfo() *zerolog.Event {
-	return l.Logger.Info()
-}
-
-func (l *MyLogger) LogError() *zerolog.Event {
-	return l.Logger.Error()
-}
-
-func (l *MyLogger) LogDebug() *zerolog.Event {
-	return l.Logger.Debug()
-}
-
-func (l *MyLogger) LogWarn() *zerolog.Event {
-	return l.Logger.Warn()
-}
-
-func (l *MyLogger) LogFatal() *zerolog.Event {
-	return l.Logger.Fatal()
+// Run implements the zerolog.Hook interface
+func (h GoroutineHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
+	e.Int("gid", GetGoroutineID())
 }

@@ -12,7 +12,8 @@ import (
 	"p2pbot/internal/db/models"
 	"p2pbot/internal/rediscl"
 	"p2pbot/internal/requests"
-	"p2pbot/internal/utils"
+
+	"github.com/rs/zerolog/log"
 	"strconv"
 	"strings"
 	"time"
@@ -43,7 +44,7 @@ func (contr *Controller) CreateOrder(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	utils.Logger.LogInfo().Fields(map[string]interface{}{
+	log.Info().Fields(map[string]interface{}{
 		"email":    u.Email,
 		"order_id": orderID,
 	}).Msg("Order ID generated")
@@ -64,14 +65,14 @@ func (contr *Controller) CreateOrder(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	utils.Logger.LogInfo().RawJSON("request", []byte(jsonReq)).Msg("json request data")
+	log.Info().RawJSON("request", []byte(jsonReq)).Msg("json request data")
 
 	// Create signature and add it to request headers
 	base64Req := base64.StdEncoding.EncodeToString([]byte(jsonReq))
 
 	sign := md5.Sum([]byte(base64Req + os.Getenv("GATEWAY_API_KEY")))
 
-	utils.Logger.LogInfo().Str("sign", fmt.Sprintf("%x", sign)).Msg("Signature generated")
+	log.Info().Str("sign", fmt.Sprintf("%x", sign)).Msg("Signature generated")
 
 	req, err := http.NewRequest("POST", "https://api.cryptomus.com/v1/payment", strings.NewReader(string(jsonReq)))
 	if err != nil {
@@ -86,7 +87,7 @@ func (contr *Controller) CreateOrder(c echo.Context) error {
 		return err
 	}
 	defer resp.Body.Close()
-	utils.Logger.LogInfo().Str("status", resp.Status).Msg("Invoice request sent")
+	log.Info().Str("status", resp.Status).Msg("Invoice request sent")
 
 	if resp.StatusCode != http.StatusOK {
 		// Read body and return it
@@ -109,7 +110,7 @@ func (contr *Controller) CreateOrder(c echo.Context) error {
 		return err
 	}
 
-	utils.Logger.LogInfo().Fields(map[string]interface{}{
+	log.Info().Fields(map[string]interface{}{
 		"order_id": respStruct.Result.OrderID,
 		"uuid":     respStruct.Result.Uuid,
 	}).Msg("Invoice created")
@@ -128,26 +129,26 @@ func (contr *Controller) CreateOrder(c echo.Context) error {
 // It is called when payment is confirmed
 // It checks if signature and order_id is valid and updates user subscription
 func (contr *Controller) ConfirmOrder(c echo.Context) error {
-    // Read request body
-    data, err := io.ReadAll(c.Request().Body)
-    if err != nil {
-        return err
-    }
-    var confirmReq map[string]interface{}
-    if err := json.Unmarshal(data, &confirmReq); err != nil {
-        return err
-    }
-    // Check ip
-    if c.RealIP() != os.Getenv("GATEWAY_IP") {
-        return fmt.Errorf("Invalid IP")
-    }
-    // Verify signature
-    //if err := utils.VerifySignature(confirmReq); err != nil {
-    //    return err
-    //}
+	// Read request body
+	data, err := io.ReadAll(c.Request().Body)
+	if err != nil {
+		return err
+	}
+	var confirmReq map[string]interface{}
+	if err := json.Unmarshal(data, &confirmReq); err != nil {
+		return err
+	}
+	// Check ip
+	if c.RealIP() != os.Getenv("GATEWAY_IP") {
+		return fmt.Errorf("Invalid IP")
+	}
+	// Verify signature
+	//if err := utils.VerifySignature(confirmReq); err != nil {
+	//    return err
+	//}
 	//Check status
 	if confirmReq["status"] != "paid" {
-		utils.Logger.LogError().Fields(map[string]interface{}{
+		log.Error().Fields(map[string]interface{}{
 			"order_id": confirmReq["order_id"],
 			"uuid":     confirmReq["uuid"],
 			"status":   confirmReq["status"],
@@ -157,16 +158,16 @@ func (contr *Controller) ConfirmOrder(c echo.Context) error {
 
 	// Get user id from redis
 	ctx := rediscl.RDB.Ctx
-    userID, err := rediscl.RDB.Client.Get(ctx, "order_id:" + confirmReq["order_id"].(string)).Result()
+	userID, err := rediscl.RDB.Client.Get(ctx, "order_id:"+confirmReq["order_id"].(string)).Result()
 	if err != nil {
 		return err
 	}
 	// Update user subscription
-	utils.Logger.LogInfo().Fields(map[string]interface{}{
+	log.Info().Fields(map[string]interface{}{
 		"user_id":  userID,
-        "order_id": confirmReq["order_id"],
-        "uuid":     confirmReq["uuid"],
-        "status":   confirmReq["status"],
+		"order_id": confirmReq["order_id"],
+		"uuid":     confirmReq["uuid"],
+		"status":   confirmReq["status"],
 	}).Msg("Payment confirmed")
 	// Update user subscription
 	uid, err := strconv.Atoi(userID)

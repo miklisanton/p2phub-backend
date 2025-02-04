@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"github.com/rs/zerolog/log"
 	"p2pbot/internal/db/models"
 	"p2pbot/internal/rabbitmq"
 	"p2pbot/internal/rediscl"
@@ -42,7 +42,7 @@ func NewAdsObserver(
 
 func (ao *AdsObserver) Start(rate time.Duration, ctx context.Context) {
 	if err := ao.rabbitCl.DeclareExchange("notifications"); err != nil {
-		utils.Logger.LogError().Fields(map[string]interface{}{
+		log.Error().Fields(map[string]interface{}{
 			"error": err.Error(),
 		}).Msg("Error declaring exchange")
 	}
@@ -69,7 +69,7 @@ func (ao *AdsObserver) CheckAds() {
 			defer wg.Done()
 			// Get map of "currency+side" -> [trackerID]
 			idsMap, err := ao.trackerService.GetIdsByCurrency(strings.ToLower(ex.GetName()))
-			utils.Logger.Debug().Fields(map[string]any{
+			log.Debug().Fields(map[string]any{
 				"map": idsMap,
 			}).Msg("monitoring ads")
 			if err != nil {
@@ -82,7 +82,7 @@ func (ao *AdsObserver) CheckAds() {
 }
 
 func (ao *AdsObserver) CheckAdsOnExchange(ex services.ExchangeI, idsMap map[string][]int) {
-	utils.Logger.Info().Msg("Checking ads on " + ex.GetName())
+	log.Info().Msg("Checking ads on " + ex.GetName())
 	var wg sync.WaitGroup
 	for key, ids := range idsMap {
 		wg.Add(1)
@@ -102,7 +102,7 @@ func (ao *AdsObserver) CheckAdsOnExchange(ex services.ExchangeI, idsMap map[stri
 		}()
 	}
 	wg.Wait()
-	utils.Logger.Info().Msg("Finished checking ads on " + ex.GetName())
+	log.Info().Msg("Finished checking ads on " + ex.GetName())
 }
 
 func (ao *AdsObserver) CheckTracker(ads []services.P2PItemI, trackerID int) {
@@ -164,7 +164,7 @@ func (ao *AdsObserver) CheckTracker(ads []services.P2PItemI, trackerID int) {
 						if err := ao.trackerService.CreateTracker(tracker); err != nil {
 							log.Printf("Error updating tracker price: %s", err)
 						} else {
-							utils.Logger.LogDebug().Fields(map[string]interface{}{
+							log.Debug().Fields(map[string]interface{}{
 								"id": tracker.ID,
 							}).Msg("tracker updated")
 						}
@@ -179,12 +179,12 @@ func (ao *AdsObserver) CheckTracker(ads []services.P2PItemI, trackerID int) {
 func (ao *AdsObserver) Notify(tracker *models.Tracker, ad services.P2PItemI) {
 	user, err := ao.userService.GetUserByID(tracker.UserID)
 	if err != nil {
-		utils.Logger.LogError().Msg("Error retreiving user")
+		log.Error().Msg("Error retreiving user")
 		return
 	}
 	if user.ChatID == nil {
 		// if telegram  not connected
-		utils.Logger.Info().Msg(fmt.Sprintf("Can't sent notification, because user with userID %d has no telegram connected", user.ID))
+		log.Info().Msg(fmt.Sprintf("Can't sent notification, because user with userID %d has no telegram connected", user.ID))
 		return
 	}
 	// Check if notifications enabled
@@ -201,12 +201,12 @@ func (ao *AdsObserver) Notify(tracker *models.Tracker, ad services.P2PItemI) {
 	}
 	nJson, err := json.Marshal(n)
 	if err != nil {
-		utils.Logger.LogError().Msg("Error converting user to json")
+		log.Error().Msg("Error converting user to json")
 	}
 	// Check if user has active subscription, if not allow only 3 notifications a week
 	subscription, err := ao.subscriptionsService.GetByUserId(user.ID)
 	if err != nil {
-		utils.Logger.LogError().Str("error ", err.Error()).Msg("Error getting subscription")
+		log.Error().Str("error ", err.Error()).Msg("Error getting subscription")
 		return
 	}
 	if subscription == nil || subscription.ValidUntil.Before(time.Now()) {
@@ -217,16 +217,16 @@ func (ao *AdsObserver) Notify(tracker *models.Tracker, ad services.P2PItemI) {
 		} else {
 			c, err := count.Int()
 			if err != nil {
-				utils.Logger.LogError().Msg("Error getting notification count")
+				log.Error().Msg("Error getting notification count")
 				return
 			}
 			if c > 3 {
-				utils.Logger.LogInfo().Msg(fmt.Sprintf("User %d has reached notification limit", user.ID))
+				log.Info().Msg(fmt.Sprintf("User %d has reached notification limit", user.ID))
 				return
 			}
 		}
 		if err := ao.rabbitCl.Publish([]byte(nJson)); err != nil {
-			utils.Logger.LogError().Fields(map[string]interface{}{
+			log.Error().Fields(map[string]interface{}{
 				"error": err.Error(),
 			}).Msg("Error publishing message")
 		}
@@ -234,7 +234,7 @@ func (ao *AdsObserver) Notify(tracker *models.Tracker, ad services.P2PItemI) {
 	} else {
 		// Just publish notification if user has active subscription
 		if err := ao.rabbitCl.Publish([]byte(nJson)); err != nil {
-			utils.Logger.LogError().Fields(map[string]interface{}{
+			log.Error().Fields(map[string]interface{}{
 				"error": err.Error(),
 			}).Msg("Error publishing message")
 		}
